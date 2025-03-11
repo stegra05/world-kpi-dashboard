@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Head from 'next/head';
 import MapChart from '../components/MapChart';
 import CountryInfo from '../components/CountryInfo';
 import DataFilter from '../components/DataFilter';
-import { parseData, KPIData } from '../utils/dataParser';
+import { 
+  parseData, 
+  KPIData, 
+  getUniqueVariables, 
+  getUniqueBatteryAliases,
+  getUniqueContinents,
+  getUniqueClimateTypes,
+  getUniqueModelSeries
+} from '../utils/dataParser';
 
 // Sample data for testing
 const SAMPLE_DATA = `battAlias;country;continent;climate;iso_a3;model_series;var;val;descr;cnt_vhcl
@@ -25,8 +33,33 @@ export default function Home() {
   const [kpiData, setKpiData] = useState<KPIData[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedVariable, setSelectedVariable] = useState<string>('variable_1');
+  const [selectedBattery, setSelectedBattery] = useState<string | null>(null);
+  const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
+  const [selectedClimate, setSelectedClimate] = useState<string | null>(null);
+  const [selectedModelSeries, setSelectedModelSeries] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Extract unique values for filter options
+  const variables = useMemo(() => 
+    kpiData.length ? getUniqueVariables(kpiData) : ['variable_1']
+  , [kpiData]);
+  
+  const batteryAliases = useMemo(() => 
+    kpiData.length ? getUniqueBatteryAliases(kpiData) : []
+  , [kpiData]);
+  
+  const continents = useMemo(() => 
+    kpiData.length ? getUniqueContinents(kpiData) : []
+  , [kpiData]);
+  
+  const climateTypes = useMemo(() => 
+    kpiData.length ? getUniqueClimateTypes(kpiData) : []
+  , [kpiData]);
+  
+  const modelSeries = useMemo(() => 
+    kpiData.length ? getUniqueModelSeries(kpiData) : []
+  , [kpiData]);
 
   useEffect(() => {
     async function loadData() {
@@ -36,20 +69,33 @@ export default function Home() {
         
         try {
           // First try to load from file
+          console.log('Attempting to fetch from /world_kpi_anonym.txt');
           const response = await fetch('/world_kpi_anonym.txt');
+          
           if (!response.ok) {
+            console.error(`Fetch failed with status: ${response.status} ${response.statusText}`);
             throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
           }
+          
           data = await response.text();
+          console.log('Data fetched successfully, first 100 chars:', data.substring(0, 100));
         } catch (fetchError) {
           console.warn('Error fetching from file, using sample data', fetchError);
           // Fall back to sample data
           data = SAMPLE_DATA;
+          console.log('Using sample data, first 100 chars:', data.substring(0, 100));
         }
         
         console.log('Data fetched, parsing...');
         const parsedData = parseData(data);
         console.log(`Parsed ${parsedData.length} data points`);
+        
+        // Log first few parsed items
+        if (parsedData.length > 0) {
+          console.log('First 3 parsed items:', parsedData.slice(0, 3));
+          console.log('Unique variables:', [...new Set(parsedData.map(item => item.variable))]);
+        }
+        
         setKpiData(parsedData);
       } catch (err) {
         console.error('Failed to load data:', err);
@@ -69,6 +115,31 @@ export default function Home() {
   const handleVariableChange = (variable: string) => {
     setSelectedVariable(variable);
   };
+
+  const handleBatteryChange = (battery: string | null) => {
+    setSelectedBattery(battery);
+  };
+
+  const handleContinentChange = (continent: string | null) => {
+    setSelectedContinent(continent);
+  };
+
+  const handleClimateChange = (climate: string | null) => {
+    setSelectedClimate(climate);
+  };
+
+  const handleModelSeriesChange = (modelSeries: string | null) => {
+    setSelectedModelSeries(modelSeries);
+  };
+
+  // Object containing all active filters
+  const activeFilters = useMemo(() => ({
+    battAlias: selectedBattery,
+    continent: selectedContinent,
+    climate: selectedClimate,
+    model_series: selectedModelSeries,
+    variable: selectedVariable
+  }), [selectedBattery, selectedContinent, selectedClimate, selectedModelSeries, selectedVariable]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading data...</div>;
@@ -90,7 +161,20 @@ export default function Home() {
       
       <DataFilter 
         selectedVariable={selectedVariable} 
-        onVariableChange={handleVariableChange} 
+        onVariableChange={handleVariableChange}
+        variables={variables}
+        batteryAliases={batteryAliases}
+        continents={continents}
+        climateTypes={climateTypes}
+        modelSeries={modelSeries}
+        selectedBattery={selectedBattery}
+        selectedContinent={selectedContinent}
+        selectedClimate={selectedClimate}
+        selectedModelSeries={selectedModelSeries}
+        onBatteryChange={handleBatteryChange}
+        onContinentChange={handleContinentChange}
+        onClimateChange={handleClimateChange}
+        onModelSeriesChange={handleModelSeriesChange}
       />
       
       <div className="mt-6 mb-8">
@@ -98,6 +182,7 @@ export default function Home() {
           <MapChart 
             data={kpiData} 
             selectedVariable={selectedVariable}
+            filters={activeFilters}
             onCountrySelect={handleCountrySelect} 
           />
         ) : (
@@ -110,6 +195,7 @@ export default function Home() {
           data={kpiData} 
           countryCode={selectedCountry} 
           selectedVariable={selectedVariable}
+          filters={activeFilters}
         />
       )}
     </div>
