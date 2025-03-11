@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ComposableMap,
   Geographies,
@@ -9,8 +9,8 @@ import { Tooltip } from 'react-tooltip';
 import { scaleQuantile } from 'd3-scale';
 import { KPIData, getAggregatedDataByCountry, getMinMaxValues } from '../utils/dataParser';
 
-// World geography data
-const geoUrl = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries.json";
+// World geography data - Alternative source if GitHub is not accessible
+const geoUrl = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
 // Color scale for the map
 const colorScale = [
@@ -29,20 +29,39 @@ interface MapChartProps {
 
 const MapChart: React.FC<MapChartProps> = ({ data, selectedVariable, onCountrySelect }) => {
   const [tooltipContent, setTooltipContent] = useState<string>('');
+  const [mapError, setMapError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    console.log(`MapChart rendered with ${data.length} data points`);
+    console.log(`Selected variable: ${selectedVariable}`);
+  }, [data, selectedVariable]);
   
   // Aggregate data by country for the selected variable
   const countryData = getAggregatedDataByCountry(data, selectedVariable);
   
   // Create a color scale based on the data range
-  const { min, max } = getMinMaxValues(countryData);
-  const colorScaleFunction = scaleQuantile<string>()
-    .domain([min, max])
-    .range(colorScale);
+  const colorScaleFunction = (() => {
+    try {
+      const { min, max } = getMinMaxValues(countryData);
+      console.log(`Data range: min=${min}, max=${max}`);
+      return scaleQuantile<string>()
+        .domain([min, max])
+        .range(colorScale);
+    } catch (error) {
+      console.error('Error creating color scale:', error);
+      setMapError('Error creating color scale');
+      return () => '#F5F5F5'; // Default color function
+    }
+  })();
   
   const handleMouseEnter = (geo: any) => {
-    const { NAME, ISO_A3 } = geo.properties;
-    const value = countryData[ISO_A3] || 0;
-    setTooltipContent(`${NAME}: ${value.toLocaleString()}`);
+    try {
+      const { NAME, ISO_A3 } = geo.properties;
+      const value = countryData[ISO_A3] || 0;
+      setTooltipContent(`${NAME}: ${value.toLocaleString()}`);
+    } catch (error) {
+      console.error('Error on mouse enter:', error);
+    }
   };
   
   const handleMouseLeave = () => {
@@ -50,11 +69,19 @@ const MapChart: React.FC<MapChartProps> = ({ data, selectedVariable, onCountrySe
   };
   
   const handleCountryClick = (geo: any) => {
-    const { ISO_A3 } = geo.properties;
-    if (countryData[ISO_A3]) {
-      onCountrySelect(ISO_A3);
+    try {
+      const { ISO_A3 } = geo.properties;
+      if (countryData[ISO_A3]) {
+        onCountrySelect(ISO_A3);
+      }
+    } catch (error) {
+      console.error('Error on country click:', error);
     }
   };
+
+  if (mapError) {
+    return <div className="text-red-500 text-center p-4">{mapError}</div>;
+  }
 
   return (
     <div className="relative">
@@ -73,28 +100,33 @@ const MapChart: React.FC<MapChartProps> = ({ data, selectedVariable, onCountrySe
           <Geographies geography={geoUrl}>
             {({ geographies }) =>
               geographies.map(geo => {
-                const { ISO_A3 } = geo.properties;
-                const value = countryData[ISO_A3] || 0;
-                
-                return (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    fill={value ? colorScaleFunction(value) : '#F5F5F5'}
-                    stroke="#D6D6DA"
-                    strokeWidth={0.5}
-                    style={{
-                      default: { outline: 'none' },
-                      hover: { outline: 'none', fill: '#F53' },
-                      pressed: { outline: 'none' }
-                    }}
-                    data-tooltip-id="map-tooltip"
-                    onMouseEnter={() => handleMouseEnter(geo)}
-                    onMouseLeave={handleMouseLeave}
-                    onClick={() => handleCountryClick(geo)}
-                    className={value ? 'cursor-pointer' : 'cursor-default'}
-                  />
-                );
+                try {
+                  const { ISO_A3 } = geo.properties;
+                  const value = countryData[ISO_A3] || 0;
+                  
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill={value ? colorScaleFunction(value) : '#F5F5F5'}
+                      stroke="#D6D6DA"
+                      strokeWidth={0.5}
+                      style={{
+                        default: { outline: 'none' },
+                        hover: { outline: 'none', fill: '#F53' },
+                        pressed: { outline: 'none' }
+                      }}
+                      data-tooltip-id="map-tooltip"
+                      onMouseEnter={() => handleMouseEnter(geo)}
+                      onMouseLeave={handleMouseLeave}
+                      onClick={() => handleCountryClick(geo)}
+                      className={value ? 'cursor-pointer' : 'cursor-default'}
+                    />
+                  );
+                } catch (error) {
+                  console.error('Error rendering geography:', error);
+                  return null;
+                }
               })
             }
           </Geographies>
