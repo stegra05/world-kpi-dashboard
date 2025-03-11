@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# World KPI Dashboard
 
-## Getting Started
+## Projektübersicht
+Dieses Projekt ist ein interaktives Dashboard zur Visualisierung von weltweiten Batterie-KPI-Daten. Es verwendet moderne Webtechnologien wie Next.js, Shad cn und Chakra UI für die Benutzeroberfläche sowie Leaflet.js für die interaktive Landkarte.
 
-First, run the development server:
+## Technologiestack
+- **Frontend Framework**: Next.js mit TypeScript
+- **UI-Bibliotheken**: Shad cn, Chakra UI
+- **Styling**: Tailwind CSS
+- **Datenvisualisierung**: Recharts, D3.js
+- **Kartendarstellung**: Leaflet.js
+- **Datenverarbeitung**: PapaParse für CSV-Parsing
+- **Tabellendarstellung**: TanStack Table
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Projektstruktur
+```
+world-kpi-dashboard/
+├── public/                  # Statische Dateien
+├── src/
+│   ├── app/                 # Next.js App Router
+│   │   ├── api/             # API-Routen
+│   │   │   └── data/        # Daten-API
+│   │   ├── globals.css      # Globale Styles
+│   │   ├── layout.tsx       # Root Layout
+│   │   └── page.tsx         # Hauptseite
+│   ├── components/          # React-Komponenten
+│   │   ├── charts/          # Diagramm-Komponenten
+│   │   ├── map/             # Karten-Komponenten
+│   │   ├── providers/       # Provider-Komponenten
+│   │   └── ui/              # UI-Komponenten
+│   ├── data/                # Daten und Datenverarbeitung
+│   │   ├── api/             # API-Funktionen
+│   │   ├── preprocessing/   # Datenvorverarbeitung
+│   │   └── world_kpi_anonym.txt  # Rohdaten
+│   └── lib/                 # Hilfsfunktionen und Konfiguration
+│       ├── config.ts        # Anwendungskonfiguration
+│       └── utils.ts         # Utility-Funktionen
+├── .gitignore               # Git-Ignore-Datei
+├── components.json          # Shadcn Komponenten-Konfiguration
+├── next.config.ts           # Next.js-Konfiguration
+├── package.json             # NPM-Paketdefinition
+├── postcss.config.mjs       # PostCSS-Konfiguration
+├── tailwind.config.js       # Tailwind-Konfiguration
+└── tsconfig.json            # TypeScript-Konfiguration
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Datenstruktur
+Die Anwendung verwendet Daten aus der Datei `world_kpi_anonym.txt`, die folgende Struktur hat:
+- `battAlias`: Batterietyp-Alias
+- `country`: Ländername
+- `continent`: Kontinent
+- `climate`: Klimazone (normal, coldland, hotland)
+- `iso_a3`: ISO 3166-1 alpha-3 Ländercode
+- `model_series`: Modellreihe
+- `var`: Variablenname (z.B. variable_1, variable_2)
+- `val`: Wert der Variable
+- `descr`: Beschreibung
+- `cnt_vhcl`: Fahrzeuganzahl
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Funktionen
+- Interaktive Landkarte mit farblicher Hervorhebung von Ländern basierend auf Datenwerten
+- Verschiedene Diagrammtypen zur Visualisierung der Daten
+- Filterung der Daten nach Batterietyp, Land, Kontinent, Klimazone und Variablen
+- Responsive Design für verschiedene Bildschirmgrößen
+- Dunkelmodus und Themenwechsel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Entwicklung
+### Voraussetzungen
+- Node.js (Version 18 oder höher)
+- npm (Version 8 oder höher)
 
-## Learn More
+### Installation
+1. Repository klonen
+2. Abhängigkeiten installieren:
+   ```
+   npm install
+   ```
+3. Entwicklungsserver starten:
+   ```
+   npm run dev
+   ```
+4. Browser öffnen und http://localhost:3000 aufrufen
 
-To learn more about Next.js, take a look at the following resources:
+## Docker
+Das Projekt kann in einem Docker-Container ausgeführt werden. Die Docker-Konfiguration wird in einem späteren Sprint implementiert.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Lizenz
+Dieses Projekt ist für interne Verwendung bestimmt.
