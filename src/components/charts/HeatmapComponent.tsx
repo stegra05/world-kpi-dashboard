@@ -12,7 +12,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts'
-import { Box, Heading, Spinner, Center, useColorMode, Select, HStack } from '@chakra-ui/react'
+import { Box, Heading, Spinner, Center } from '@chakra-ui/react'
 
 interface HeatmapProps {
   title: string
@@ -35,21 +35,20 @@ export function HeatmapComponent({
   height = 300,
   loading = false
 }: HeatmapProps) {
-  const { colorMode } = useColorMode()
   const [chartData, setChartData] = useState<any[]>([])
 
+  // Format data for heatmap visualization
   useEffect(() => {
     if (!data || data.length === 0) return
 
-    // Formatiere die Daten für die Heatmap
-    const formattedData = data.map(item => ({
+    // Process data for the heatmap
+    const processedData = data.map(item => ({
       x: item[xKey],
       y: item[yKey],
-      z: item[valueKey],
-      name: `${item[xKey]} - ${item[yKey]}`
-    }))
+      z: item[valueKey] || 0
+    }));
 
-    setChartData(formattedData)
+    setChartData(processedData)
   }, [data, xKey, yKey, valueKey])
 
   if (loading) {
@@ -74,11 +73,23 @@ export function HeatmapComponent({
     )
   }
 
+  // Custom tooltip for the heatmap
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-2 border border-gray-200 rounded shadow-sm">
+          <p className="text-sm">{`${xKey}: ${payload[0].payload.x}`}</p>
+          <p className="text-sm">{`${yKey}: ${payload[0].payload.y}`}</p>
+          <p className="text-sm font-bold">{`${valueKey}: ${payload[0].payload.z}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Heading size="md">{title}</Heading>
-      </Box>
+      <Heading size="md" mb={4}>{title}</Heading>
       <ResponsiveContainer width="100%" height={height}>
         <ScatterChart
           margin={{
@@ -88,39 +99,28 @@ export function HeatmapComponent({
             left: 20,
           }}
         >
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke={colorMode === 'light' ? '#e2e8f0' : '#2d3748'} 
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis 
             dataKey="x" 
-            name={xKey}
-            tick={{ fill: colorMode === 'light' ? '#1a202c' : '#e2e8f0' }}
+            name={xKey} 
+            tick={{ fill: "#1a202c" }}
           />
           <YAxis 
             dataKey="y" 
-            name={yKey}
-            tick={{ fill: colorMode === 'light' ? '#1a202c' : '#e2e8f0' }}
+            name={yKey} 
+            tick={{ fill: "#1a202c" }}
           />
           <ZAxis 
             dataKey="z" 
-            range={[20, 500]} 
+            range={[50, 1000]} 
             name={valueKey} 
           />
-          <Tooltip 
-            cursor={{ strokeDasharray: '3 3' }}
-            contentStyle={{ 
-              backgroundColor: colorMode === 'light' ? 'white' : '#1a202c',
-              color: colorMode === 'light' ? '#1a202c' : 'white',
-              border: `1px solid ${colorMode === 'light' ? '#e2e8f0' : '#2d3748'}`
-            }}
-            formatter={(value: any, name: string) => [value, name]}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Legend />
           <Scatter 
-            name={valueKey} 
             data={chartData} 
             fill={colors[0]} 
+            name={valueKey}
           />
         </ScatterChart>
       </ResponsiveContainer>

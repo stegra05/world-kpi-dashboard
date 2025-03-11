@@ -1,25 +1,24 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useColorMode, Button, Flex, Text, Box } from '@chakra-ui/react'
-import { SunIcon, MoonIcon } from '@chakra-ui/icons'
+import { useState } from 'react'
+import { Button, Flex, Text, Box } from '@chakra-ui/react'
 
 interface ColorSchemeToggleProps {
   showLabel?: boolean
 }
 
 export function ColorSchemeToggle({ showLabel = true }: ColorSchemeToggleProps) {
-  const { colorMode, toggleColorMode } = useColorMode()
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>('light')
+  const toggleColorMode = () => setColorMode(colorMode === 'light' ? 'dark' : 'light')
   
   return (
     <Button
       onClick={toggleColorMode}
       size="md"
       variant="ghost"
-      leftIcon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
       aria-label={`Wechseln zum ${colorMode === 'light' ? 'Dunkelmodus' : 'Hellmodus'}`}
     >
-      {showLabel && (colorMode === 'light' ? 'Dunkelmodus' : 'Hellmodus')}
+      {colorMode === 'light' ? '🌙' : '☀️'} {showLabel && (colorMode === 'light' ? 'Dunkelmodus' : 'Hellmodus')}
     </Button>
   )
 }
@@ -30,7 +29,7 @@ interface UserGuideBannerProps {
 }
 
 export function UserGuideBanner({ onDismiss, showBanner }: UserGuideBannerProps) {
-  const { colorMode } = useColorMode()
+  const [colorMode] = useState<'light' | 'dark'>('light')
   
   if (!showBanner) return null
   
@@ -62,7 +61,7 @@ interface UserPreferencesProps {
 }
 
 export function UserPreferences({ onSave, preferences }: UserPreferencesProps) {
-  const { colorMode } = useColorMode()
+  const [colorMode] = useState<'light' | 'dark'>('light')
   
   // Hier könnten weitere Benutzereinstellungen implementiert werden
   

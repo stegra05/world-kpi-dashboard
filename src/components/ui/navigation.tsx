@@ -1,29 +1,19 @@
 'use client'
 
-import { Box, Flex, Text, VStack, Icon, useColorMode } from '@chakra-ui/react'
+import { Box, Flex, Text, VStack } from '@chakra-ui/react'
 import { ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-// Icons
-import { 
-  HiHome, 
-  HiChartBar, 
-  HiGlobe, 
-  HiAdjustments, 
-  HiInformationCircle,
-  HiDocumentReport
-} from 'react-icons/hi'
-
 interface NavItemProps {
-  icon: ReactNode
+  icon: string
   children: string
   href: string
   isActive?: boolean
 }
 
 const NavItem = ({ icon, children, href, isActive }: NavItemProps) => {
-  const { colorMode } = useColorMode()
+  const colorMode = 'light'
   
   return (
     <Link href={href} passHref>
@@ -41,13 +31,7 @@ const NavItem = ({ icon, children, href, isActive }: NavItemProps) => {
         bg={isActive ? (colorMode === 'light' ? 'blue.100' : 'blue.800') : 'transparent'}
         color={isActive ? (colorMode === 'light' ? 'blue.700' : 'blue.300') : 'inherit'}
       >
-        {icon && (
-          <Icon
-            mr="4"
-            fontSize="16"
-            as={icon}
-          />
-        )}
+        <Text mr="4" fontSize="16px">{icon}</Text>
         <Text fontWeight={isActive ? 'medium' : 'normal'}>{children}</Text>
       </Flex>
     </Link>
@@ -59,50 +43,50 @@ export function Navigation() {
   
   return (
     <Box pt={5}>
-      <VStack spacing={1} align="stretch">
+      <Box display="flex" flexDirection="column" gap={1}>
         <NavItem 
-          icon={HiHome} 
+          icon="🏠" 
           href="/" 
           isActive={pathname === '/'}
         >
           Dashboard
         </NavItem>
         <NavItem 
-          icon={HiChartBar} 
+          icon="📊" 
           href="/charts" 
           isActive={pathname === '/charts'}
         >
           Diagramme
         </NavItem>
         <NavItem 
-          icon={HiGlobe} 
+          icon="🌐" 
           href="/map" 
           isActive={pathname === '/map'}
         >
           Weltkarte
         </NavItem>
         <NavItem 
-          icon={HiAdjustments} 
+          icon="⚙️" 
           href="/settings" 
           isActive={pathname === '/settings'}
         >
           Einstellungen
         </NavItem>
         <NavItem 
-          icon={HiDocumentReport} 
+          icon="📄" 
           href="/reports" 
           isActive={pathname === '/reports'}
         >
           Berichte
         </NavItem>
         <NavItem 
-          icon={HiInformationCircle} 
+          icon="ℹ️" 
           href="/about" 
           isActive={pathname === '/about'}
         >
           Über
         </NavItem>
-      </VStack>
+      </Box>
     </Box>
   )
 }

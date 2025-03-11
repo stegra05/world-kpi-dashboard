@@ -3,7 +3,8 @@
  * Kombiniert alle Datenverarbeitungsfunktionen
  */
 
-import { BatteryData, loadBatteryData } from './dataProcessor';
+import { loadBatteryData } from './dataProcessor';
+import type { BatteryData } from './dataProcessor';
 import { 
   cleanData, 
   normalizeValues, 
@@ -67,7 +68,7 @@ export function testDataPreprocessing() {
 
 // Exportiere alle Funktionen für die Verwendung in anderen Modulen
 export {
-  BatteryData,
+  type BatteryData,
   loadBatteryData,
   cleanData,
   normalizeValues,

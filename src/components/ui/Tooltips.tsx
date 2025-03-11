@@ -1,48 +1,19 @@
 'use client'
 
 import { ReactNode } from 'react'
-import {
-  Tooltip,
-  IconButton,
-  Icon,
-  Box,
-  useColorMode,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverArrow,
-  PopoverCloseButton,
-  PopoverHeader,
-  PopoverBody
-} from '@chakra-ui/react'
-import { InfoIcon, QuestionIcon } from '@chakra-ui/icons'
+import { Box, Text, Button } from '@chakra-ui/react'
 
 interface TooltipHelpProps {
   label: string
   children: ReactNode
-  placement?: 'top' | 'right' | 'bottom' | 'left'
-  hasArrow?: boolean
 }
 
-export function TooltipHelp({
-  label,
-  children,
-  placement = 'top',
-  hasArrow = true
-}: TooltipHelpProps) {
+// Simplified placeholder component until dependencies are resolved
+export function TooltipHelp({ label, children }: TooltipHelpProps) {
   return (
-    <Tooltip 
-      label={label} 
-      placement={placement} 
-      hasArrow={hasArrow}
-      bg="blue.700"
-      color="white"
-      borderRadius="md"
-      px={3}
-      py={2}
-    >
+    <Box position="relative" display="inline-block">
       {children}
-    </Tooltip>
+    </Box>
   )
 }
 
@@ -56,16 +27,14 @@ export function InfoIconButton({
   'aria-label': ariaLabel = 'Mehr Informationen'
 }: InfoIconButtonProps) {
   return (
-    <TooltipHelp label={label}>
-      <IconButton
-        icon={<InfoIcon />}
-        variant="ghost"
-        size="sm"
-        aria-label={ariaLabel}
-        colorScheme="blue"
-        ml={1}
-      />
-    </TooltipHelp>
+    <Button
+      size="sm"
+      ml={1}
+      title={label}
+      aria-label={ariaLabel}
+    >
+      ℹ️
+    </Button>
   )
 }
 
@@ -80,35 +49,17 @@ export function HelpPopover({
   content,
   trigger
 }: HelpPopoverProps) {
-  const { colorMode } = useColorMode()
-  
   return (
-    <Popover placement="right" closeOnBlur={true}>
-      <PopoverTrigger>
-        {trigger || (
-          <IconButton
-            icon={<QuestionIcon />}
-            variant="ghost"
-            size="sm"
-            aria-label="Hilfe"
-            colorScheme="blue"
-          />
-        )}
-      </PopoverTrigger>
-      <PopoverContent
-        bg={colorMode === 'light' ? 'white' : 'gray.800'}
-        borderColor={colorMode === 'light' ? 'gray.200' : 'gray.600'}
-        boxShadow="lg"
-      >
-        <PopoverArrow bg={colorMode === 'light' ? 'white' : 'gray.800'} />
-        <PopoverCloseButton />
-        <PopoverHeader fontWeight="bold" borderBottomWidth="1px">
-          {title}
-        </PopoverHeader>
-        <PopoverBody>
-          {content}
-        </PopoverBody>
-      </PopoverContent>
-    </Popover>
+    <Box>
+      {trigger || (
+        <Button
+          size="sm"
+          title={title}
+          aria-label="Hilfe"
+        >
+          ❓
+        </Button>
+      )}
+    </Box>
   )
 }

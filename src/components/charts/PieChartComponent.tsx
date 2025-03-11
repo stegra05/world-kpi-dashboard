@@ -9,7 +9,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts'
-import { Box, Heading, Spinner, Center, useColorMode, Select } from '@chakra-ui/react'
+import { Box, Heading, Spinner, Center } from '@chakra-ui/react'
 
 interface PieChartProps {
   title: string
@@ -30,7 +30,6 @@ export function PieChartComponent({
   height = 300,
   loading = false
 }: PieChartProps) {
-  const { colorMode } = useColorMode()
   const [chartData, setChartData] = useState<any[]>([])
   const [sortBy, setSortBy] = useState<string>('value')
 
@@ -71,19 +70,41 @@ export function PieChartComponent({
     )
   }
 
+  // RADIAN für die Beschriftung
+  const RADIAN = Math.PI / 180;
+  
+  // Custom Label für die Pie-Sections
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+        fontSize={12}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Heading size="md">{title}</Heading>
-        <Select 
-          size="sm" 
-          width="auto" 
+        <select 
+          className="text-sm p-1 border border-gray-200 rounded"
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value)}
         >
           <option value="value">Nach Wert</option>
           <option value="alphabetical">Alphabetisch</option>
-        </Select>
+        </select>
       </Box>
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
@@ -92,23 +113,22 @@ export function PieChartComponent({
             cx="50%"
             cy="50%"
             labelLine={false}
+            label={renderCustomizedLabel}
             outerRadius={80}
             fill="#8884d8"
             dataKey={dataKey}
             nameKey={nameKey}
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
           >
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
             ))}
           </Pie>
-          <Tooltip 
+          <Tooltip
             contentStyle={{ 
-              backgroundColor: colorMode === 'light' ? 'white' : '#1a202c',
-              color: colorMode === 'light' ? '#1a202c' : 'white',
-              border: `1px solid ${colorMode === 'light' ? '#e2e8f0' : '#2d3748'}`
+              backgroundColor: "white",
+              color: "#1a202c",
+              border: "1px solid #e2e8f0"
             }}
-            formatter={(value: any) => [`${value}`, dataKey]}
           />
           <Legend />
         </PieChart>

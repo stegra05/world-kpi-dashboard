@@ -11,7 +11,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts'
-import { Box, Heading, Spinner, Center, useColorMode, Select } from '@chakra-ui/react'
+import { Box, Heading, Spinner, Center } from '@chakra-ui/react'
 
 interface BarChartProps {
   title: string
@@ -32,7 +32,6 @@ export function BarChartComponent({
   height = 300,
   loading = false
 }: BarChartProps) {
-  const { colorMode } = useColorMode()
   const [chartData, setChartData] = useState<any[]>([])
   const [sortBy, setSortBy] = useState<string>('value')
 
@@ -77,15 +76,14 @@ export function BarChartComponent({
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Heading size="md">{title}</Heading>
-        <Select 
-          size="sm" 
-          width="auto" 
+        <select 
+          className="text-sm p-1 border border-gray-200 rounded"
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value)}
         >
           <option value="value">Nach Wert</option>
           <option value="alphabetical">Alphabetisch</option>
-        </Select>
+        </select>
       </Box>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart
@@ -99,20 +97,20 @@ export function BarChartComponent({
         >
           <CartesianGrid 
             strokeDasharray="3 3" 
-            stroke={colorMode === 'light' ? '#e2e8f0' : '#2d3748'} 
+            stroke="#e2e8f0" 
           />
           <XAxis 
             dataKey={categoryKey} 
-            tick={{ fill: colorMode === 'light' ? '#1a202c' : '#e2e8f0' }}
+            tick={{ fill: "#1a202c" }}
           />
           <YAxis 
-            tick={{ fill: colorMode === 'light' ? '#1a202c' : '#e2e8f0' }}
+            tick={{ fill: "#1a202c" }}
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: colorMode === 'light' ? 'white' : '#1a202c',
-              color: colorMode === 'light' ? '#1a202c' : 'white',
-              border: `1px solid ${colorMode === 'light' ? '#e2e8f0' : '#2d3748'}`
+              backgroundColor: "white",
+              color: "#1a202c",
+              border: "1px solid #e2e8f0"
             }}
           />
           <Legend />

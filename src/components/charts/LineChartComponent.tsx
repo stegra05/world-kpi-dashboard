@@ -11,7 +11,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts'
-import { Box, Heading, Spinner, Center, useColorMode, Select, HStack } from '@chakra-ui/react'
+import { Box, Heading, Spinner, Center } from '@chakra-ui/react'
 
 interface LineChartProps {
   title: string
@@ -32,25 +32,25 @@ export function LineChartComponent({
   height = 300,
   loading = false
 }: LineChartProps) {
-  const { colorMode } = useColorMode()
   const [chartData, setChartData] = useState<any[]>([])
-  const [sortBy, setSortBy] = useState<string>('category')
+  const [selectedKeys, setSelectedKeys] = useState<string[]>(dataKeys)
 
   useEffect(() => {
     if (!data || data.length === 0) return
+    setChartData(data.slice(0, 20)) // Limit to 20 data points for performance
+    setSelectedKeys(dataKeys)
+  }, [data, dataKeys])
 
-    // Sortiere die Daten
-    let sortedData = [...data]
-    if (sortBy === 'category') {
-      sortedData.sort((a, b) => (a[categoryKey] as string).localeCompare(b[categoryKey] as string))
-    } else if (sortBy === 'value') {
-      // Sortiere nach dem ersten dataKey
-      sortedData.sort((a, b) => (b[dataKeys[0]] as number) - (a[dataKeys[0]] as number))
+  const toggleDataKey = (key: string) => {
+    if (selectedKeys.includes(key)) {
+      // Only remove if there would still be at least one key selected
+      if (selectedKeys.length > 1) {
+        setSelectedKeys(selectedKeys.filter(k => k !== key))
+      }
+    } else {
+      setSelectedKeys([...selectedKeys, key])
     }
-
-    // Begrenze auf die Top 10 Einträge
-    setChartData(sortedData.slice(0, 10))
-  }, [data, dataKeys, categoryKey, sortBy])
+  }
 
   if (loading) {
     return (
@@ -76,18 +76,27 @@ export function LineChartComponent({
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Heading size="md">{title}</Heading>
-        <Select 
-          size="sm" 
-          width="auto" 
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-        >
-          <option value="category">Nach Kategorie</option>
-          <option value="value">Nach Wert</option>
-        </Select>
-      </Box>
+      <Heading size="md" mb={4}>{title}</Heading>
+      
+      {/* Data series toggles */}
+      {dataKeys.length > 1 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {dataKeys.map((key, idx) => (
+            <button
+              key={key}
+              onClick={() => toggleDataKey(key)}
+              className={`px-2 py-1 text-xs rounded-full ${
+                selectedKeys.includes(key) 
+                  ? 'bg-blue-500 text-white' 
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+      )}
+      
       <ResponsiveContainer width="100%" height={height}>
         <LineChart
           data={chartData}
@@ -100,29 +109,30 @@ export function LineChartComponent({
         >
           <CartesianGrid 
             strokeDasharray="3 3" 
-            stroke={colorMode === 'light' ? '#e2e8f0' : '#2d3748'} 
+            stroke="#e2e8f0"
           />
           <XAxis 
             dataKey={categoryKey} 
-            tick={{ fill: colorMode === 'light' ? '#1a202c' : '#e2e8f0' }}
+            tick={{ fill: "#1a202c" }}
           />
           <YAxis 
-            tick={{ fill: colorMode === 'light' ? '#1a202c' : '#e2e8f0' }}
+            tick={{ fill: "#1a202c" }}
           />
           <Tooltip 
             contentStyle={{ 
-              backgroundColor: colorMode === 'light' ? 'white' : '#1a202c',
-              color: colorMode === 'light' ? '#1a202c' : 'white',
-              border: `1px solid ${colorMode === 'light' ? '#e2e8f0' : '#2d3748'}`
+              backgroundColor: "white",
+              color: "#1a202c",
+              border: "1px solid #e2e8f0"
             }}
           />
           <Legend />
-          {dataKeys.map((key, index) => (
-            <Line 
+          
+          {selectedKeys.map((key, idx) => (
+            <Line
               key={key}
               type="monotone"
               dataKey={key}
-              stroke={colors[index % colors.length]}
+              stroke={colors[idx % colors.length]}
               activeDot={{ r: 8 }}
               name={key}
             />

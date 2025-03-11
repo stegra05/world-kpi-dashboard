@@ -1,15 +1,15 @@
 'use client'
 
-import { Box, Flex, Container, useColorMode, IconButton, Heading } from '@chakra-ui/react'
+import { Box, Flex, Container, Button, Heading } from '@chakra-ui/react'
 import { useState } from 'react'
-import { MoonIcon, SunIcon } from '@chakra-ui/icons'
 
 interface LayoutProps {
   children: React.ReactNode
 }
 
 export function MainLayout({ children }: LayoutProps) {
-  const { colorMode, toggleColorMode } = useColorMode()
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>('light')
+  const toggleColorMode = () => setColorMode(colorMode === 'light' ? 'dark' : 'light')
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   return (
@@ -28,12 +28,12 @@ export function MainLayout({ children }: LayoutProps) {
       >
         <Flex justify="space-between" align="center">
           <Heading as="h1" size="lg">World KPI Dashboard</Heading>
-          <IconButton
-            aria-label="Toggle color mode"
-            icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+          <Button
             onClick={toggleColorMode}
             variant="ghost"
-          />
+          >
+            {colorMode === 'light' ? '🌙' : '☀️'}
+          </Button>
         </Flex>
       </Box>
 

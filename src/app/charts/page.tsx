@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Box, Heading, SimpleGrid, useColorMode } from '@chakra-ui/react'
+import { Box, Heading, SimpleGrid } from '@chakra-ui/react'
 import { MainLayout } from '@/components/ui/layout'
 import { Navigation } from '@/components/ui/navigation'
 import { FilterComponent, FilterValues } from '@/components/ui/FilterComponent'
@@ -10,7 +10,7 @@ import { preprocessData } from '@/data/preprocessing'
 import { BatteryData } from '@/data/preprocessing/dataProcessor'
 
 export default function ChartsPage() {
-  const { colorMode } = useColorMode()
+  const [colorMode] = useState('light')
   const [filteredData, setFilteredData] = useState<BatteryData[]>([])
   const [filters, setFilters] = useState<FilterValues>({
     batteryType: 'all',
@@ -72,7 +72,7 @@ export default function ChartsPage() {
       <Box as="main" py={6}>
         <Heading as="h1" size="xl" mb={6}>Diagramme</Heading>
         
-        <SimpleGrid columns={{ base: 1, lg: 4 }} spacing={6}>
+        <SimpleGrid columns={{ base: 1, lg: 4 }} gap={6}>
           {/* Filterbereich */}
           <Box>
             <FilterComponent onFilterChange={handleFilterChange} />
@@ -80,7 +80,7 @@ export default function ChartsPage() {
           
           {/* Diagrammbereich */}
           <Box gridColumn={{ base: "1", lg: "2 / span 3" }}>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
               <Box 
                 p={4} 
                 borderRadius="lg" 
@@ -93,7 +93,6 @@ export default function ChartsPage() {
                   chartType="bar" 
                   title="Verteilung nach Ländern" 
                   dataType="country" 
-                  loading={loading}
                 />
               </Box>
               
@@ -109,7 +108,6 @@ export default function ChartsPage() {
                   chartType="pie" 
                   title="Verteilung nach Kontinenten" 
                   dataType="continent" 
-                  loading={loading}
                 />
               </Box>
               
@@ -125,7 +123,6 @@ export default function ChartsPage() {
                   chartType="line" 
                   title="Trendanalyse" 
                   dataType="batteryType" 
-                  loading={loading}
                 />
               </Box>
               
@@ -141,7 +138,6 @@ export default function ChartsPage() {
                   chartType="heatmap" 
                   title="Korrelationsanalyse" 
                   dataType="climate" 
-                  loading={loading}
                 />
               </Box>
             </SimpleGrid>

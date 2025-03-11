@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Box, Heading, Spinner, Center, useColorMode } from '@chakra-ui/react'
+import { Box, Heading, Spinner, Center } from '@chakra-ui/react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { preprocessData } from '@/data/preprocessing'
@@ -26,7 +26,6 @@ export function MapComponent({
   title,
   height = 500
 }: MapComponentProps) {
-  const { colorMode } = useColorMode()
   const mapRef = useRef<HTMLDivElement>(null)
   const leafletMap = useRef<L.Map | null>(null)
   const geoJsonLayer = useRef<L.GeoJSON | null>(null)
@@ -59,13 +58,6 @@ export function MapComponent({
       }
     }
   }, [])
-  
-  // Aktualisiere die Karte, wenn sich der Farbmodus ändert
-  useEffect(() => {
-    if (leafletMap.current) {
-      // Hier könnten wir den Kartenstil basierend auf dem Farbmodus ändern
-    }
-  }, [colorMode])
   
   // Lade GeoJSON-Daten und verknüpfe sie mit unseren Daten
   const loadGeoData = async () => {
@@ -104,13 +96,13 @@ export function MapComponent({
             // Farbe basierend auf Daten oder Standardfarbe
             const fillColor = countryData 
               ? getColorByValue(countryData.value) 
-              : colorMode === 'light' ? '#f7fafc' : '#2d3748'
+              : '#f7fafc' // neutral light color
             
             return {
               fillColor,
               weight: 1,
               opacity: 1,
-              color: colorMode === 'light' ? '#e2e8f0' : '#4a5568',
+              color: '#e2e8f0', // border color
               fillOpacity: 0.7
             }
           },
@@ -202,7 +194,7 @@ export function MapComponent({
         borderRadius="lg" 
         overflow="hidden"
         border="1px"
-        borderColor={colorMode === 'light' ? 'gray.200' : 'gray.700'}
+        borderColor="gray.200"
         opacity={loading ? 0.3 : 1}
         transition="opacity 0.3s ease"
       />

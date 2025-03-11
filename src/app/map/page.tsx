@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Box, Heading, SimpleGrid, useColorMode } from '@chakra-ui/react'
+import { Box, Heading, SimpleGrid } from '@chakra-ui/react'
 import { MainLayout } from '@/components/ui/layout'
 import { Navigation } from '@/components/ui/navigation'
 import { FilterComponent, FilterValues } from '@/components/ui/FilterComponent'
 import { MapComponent } from '@/components/map/MapComponent'
 
 export default function FilteredMapPage() {
-  const { colorMode } = useColorMode()
+  const [colorMode] = useState('light')
   const [filters, setFilters] = useState<FilterValues>({
     batteryType: 'all',
     continent: 'all',
@@ -34,7 +34,7 @@ export default function FilteredMapPage() {
       <Box as="main" py={6}>
         <Heading as="h1" size="xl" mb={6}>Interaktive Weltkarte</Heading>
         
-        <SimpleGrid columns={{ base: 1, lg: 4 }} spacing={6}>
+        <SimpleGrid columns={{ base: 1, lg: 4 }} gap={6}>
           {/* Filterbereich */}
           <Box>
             <FilterComponent onFilterChange={handleFilterChange} />
