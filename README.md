@@ -28,6 +28,16 @@ Details siehe `DATA.md`. Die Quelldatei ist `data/world_kpi_anonym.csv`.
 
 Details siehe `ARCHITECTURE.md`. Hauptordner sind `backend/`, `frontend/`, `data/`.
 
+## Umgebungsvariablen
+
+Das Frontend verwendet Umgebungsvariablen für die Konfiguration:
+
+* `VITE_API_URL`: URL des Backend-Servers
+  * Entwicklung: `http://localhost:8000` (`.env.development`)
+  * Produktion: `https://api.example.com` (`.env.production`)
+
+Die Umgebungsvariablen werden automatisch beim Build-Prozess eingefügt. Für lokale Entwicklung wird `.env.development` verwendet, für den Produktionsbuild `.env.production`.
+
 ## Setup
 
 1.  **Repository klonen:**

@@ -5,6 +5,9 @@ const TIMEOUT_MS = 5000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
+// Get API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL;
+
 const getErrorMessage = (error) => {
   if (error.response) {
     // Server responded with error status
@@ -40,7 +43,7 @@ export const useKpiData = () => {
 
   const fetchDataWithRetry = async (retryCount = 0) => {
     try {
-      const response = await axios.get('/api/data', {
+      const response = await axios.get(`${API_URL}/api/data`, {
         timeout: TIMEOUT_MS,
         validateStatus: status => status === 200
       });
