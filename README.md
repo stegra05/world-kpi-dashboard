@@ -1,70 +1,81 @@
 # World KPI Dashboard
 
-A web application that visualizes world KPI data with an interactive map. Countries are colored based on their KPI values, and detailed information is displayed when clicking on a country.
+## Beschreibung
+
+Eine Webanwendung zur Visualisierung von Key Performance Indicators (KPIs) aus einer CSV-Datei auf einer interaktiven Weltkarte. Die Anwendung ermöglicht das Filtern der Daten nach verschiedenen Dimensionen wie `battAlias` (Batterie-Alias) und `var` (KPI-Variable) und fokussiert sich auf den Vergleich von KPIs über geografische Regionen hinweg.
+
+## Tech Stack
+
+* **Backend:** Python, FastAPI, Pandas
+* **Frontend:** React (mit Vite), **Material UI (MUI)**, Plotly.js (für Karten/Charts), Chart.js (optional), Axios
+* **Entwicklungsumgebung:** Cursor AI, Git
 
 ## Features
 
-- Interactive world map with country data visualization
-- Color-coded countries based on KPI values
-- Detailed country information display
-- Filter by different variables
-- Responsive design
+* Interaktive Weltkarte zur Darstellung von Länderdaten (ähnlich dem Beispielbild).
+* Einfärbung der Länder basierend auf ausgewählten Metriken (`val` eines `var` oder `cnt_vhcl`).
+* Auswahlmöglichkeit für den Benutzer, welche Metrik (`var`) auf der Karte angezeigt wird.
+* Filterung der Daten nach `battAlias`, `var`, `model_series`, `continent`, `climate`.
+* Hervorhebung von Ländern und Anzeige von Detailinformationen bei Interaktion (Hover/Klick).
+* Fokus auf den Vergleich von KPIs pro `battAlias`.
+* Modernes Dashboard-Layout inspiriert vom Beispielbild (Sidebar, Hauptbereich, Info-Karten).
 
-## Getting Started
+## Datenquelle
 
-Follow these instructions to get the project up and running on your local machine for development and testing purposes.
+Details siehe `DATA.md`. Die Quelldatei ist `data/world_kpi_anonym.csv`.
 
-### Prerequisites
+## Projektstruktur
 
-- Node.js (version 14.0 or later)
-- npm or yarn
+Details siehe `ARCHITECTURE.md`. Hauptordner sind `backend/`, `frontend/`, `data/`.
 
-### Installation
+## Setup
 
-1. Clone the repository
-2. Install dependencies:
+1.  **Repository klonen:**
+    ```bash
+    # git clone <Deine Repository URL>
+    # cd world-kpi-dashboard 
+    ```
+2.  **Backend Setup:**
+    ```bash
+    cd backend
+    python -m venv venv  # Oder python3
+    # Virtual Environment aktivieren:
+    # Linux/macOS: source venv/bin/activate
+    # Windows: .\\venv\\Scripts\\activate
+    pip install fastapi uvicorn pandas "python-multipart" 
+    # (Optional: pip freeze > requirements.txt)
+    cd .. 
+    ```
+3.  **Frontend Setup:**
+    ```bash
+    cd frontend
+    # WICHTIG: Frontend-Projekt hier initialisieren (wird NICHT vom Skript gemacht!)
+    # Beispiel: npm create vite@latest . --template react 
+    # (Der Punkt '.' installiert im aktuellen Ordner)
+    npm install
+    # MUI und Abhängigkeiten installieren
+    npm install @mui/material @emotion/react @emotion/styled @mui/icons-material
+    cd ..
+    ```
+    *(Hinweis: MUI benötigt ggf. die Roboto Font. Siehe MUI Docs für Details, falls nicht standardmäßig geladen).*
 
-```bash
-npm install
-# or
-yarn install
-```
+## Ausführung
 
-3. Make sure the data file `world_kpi_anonym.txt` is in the `/public` directory.
+1.  **Backend starten:**
+    ```bash
+    cd backend
+    # Sicherstellen, dass venv aktiviert ist
+    uvicorn main:app --reload 
+    ```
+    *Backend läuft auf `http://127.0.0.1:8000`.*
 
-4. Start the development server:
+2.  **Frontend starten:**
+    ```bash
+    cd frontend
+    npm run dev
+    ```
+    *Frontend läuft auf `http://localhost:5173` (oder ähnlich).*
 
-```bash
-npm run dev
-# or
-yarn dev
-```
+## API Endpunkte
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
-
-## Data Structure
-
-The data is stored in a CSV-like format with `;` as the delimiter. The columns include:
-
-- battAlias: Battery alias
-- country: Country name
-- continent: Continent name
-- climate: Climate type
-- iso_a3: Country ISO Alpha-3 code
-- model_series: Model series
-- var: Variable name
-- val: Numeric value
-- descr: Description
-- cnt_vhcl: Count
-
-## Technologies Used
-
-- Next.js - React framework
-- React - JavaScript library for building user interfaces
-- React Simple Maps - React components for creating beautiful SVG maps
-- D3 Scale - Scale functions for data visualization
-- Tailwind CSS - Utility-first CSS framework
-
-## License
-
-This project is licensed under the MIT License.
+Details siehe `ARCHITECTURE.md`. Hauptendpunkt: `GET /api/data`.

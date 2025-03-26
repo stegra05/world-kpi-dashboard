@@ -1,0 +1,39 @@
+## Project Context: World KPI Dashboard
+
+**1. Projektziel:**
+   - Web-Dashboard zur Visualisierung von KPIs aus `data/world_kpi_anonym.csv`.
+   - Kernstück ist eine interaktive Choropleth-Weltkarte.
+   - Fokus auf Vergleich von KPIs (`val`) pro `battAlias` über Länder hinweg.
+   - Benutzer sollen Metrik (`var`) und Filter (`battAlias`, `continent` etc.) auswählen können.
+   - Modernes Dashboard-Layout mit Sidebar und Hauptbereich (inspiriert vom Beispielbild), umgesetzt mit Material UI.
+
+**2. Technologie-Stack:**
+   - **Backend:** Python 3, FastAPI, Pandas, Uvicorn.
+   - **Frontend:** React (mit Vite), JavaScript, Material UI (MUI) für Komponenten/Layout, Plotly.js (`react-plotly.js`) für Karten/Charts, Axios für API-Calls.
+   - **Datenquelle:** `data/world_kpi_anonym.csv` (CSV, **Semikolon-Trennzeichen**). Wichtige Spalten: `iso_a3`, `country`, `battAlias`, `var`, `val`, `cnt_vhcl`. Daten im 'Long Format'.
+
+**3. Frontend-Richtlinien:**
+   - React: Funktionale Komponenten, Hooks (`useState`, `useEffect` etc.).
+   - MUI: Komponenten wie `<Box>`, `<Grid>`, `<AppBar>`, `<Drawer>`, `<Card>`, `<Select>`, `<Button>` verwenden. Styling primär über `sx`-Prop oder `styled()`.
+   - Plotly: `react-plotly.js` für die Weltkarte nutzen (Typ: `choropleth`, `locations` an `iso_a3` binden).
+   - API-Calls: Mit Axios in `useEffect`, Lade- & Fehlerzustände behandeln.
+   - Struktur: Logische Komponententrennung (z.B. `src/components/Map`, `src/components/Filters`).
+
+**4. Backend-Richtlinien:**
+   - FastAPI: Standard-Pattern verwenden. Automatische Docs (`/docs`) nutzen.
+   - Pandas: `pd.read_csv(..., delimiter=';')` zum Einlesen verwenden. Fehlerbehandlung für Dateizugriff.
+   - API: `/api/data` Endpunkt soll JSON-Liste liefern (`df.to_dict(orient='records')`).
+   - Code-Style: PEP 8 für Python, Type Hints sind erwünscht.
+   - CORS: Middleware für Entwicklung aktivieren.
+
+**5. Wichtige Dateien & Ordner:**
+   - Backend: `backend/main.py`
+   - Frontend: `frontend/src/App.jsx`, `frontend/src/components/`
+   - Daten: `data/world_kpi_anonym.csv`
+
+**6. Allgemeine Hinweise für die AI:**
+   - Priorisiere klaren, wartbaren Code.
+   * Füge Kommentare für komplexe Logik hinzu.
+   * Berücksichtige Fehlerbehandlung (API-Fehler, Datenfehler, fehlende Werte im CSV).
+   * Beachte das Semikolon-Trennzeichen beim Generieren von Code, der die CSV liest.
+   * Halte dich bei Code-Generierung und -Änderung an den definierten Tech-Stack.

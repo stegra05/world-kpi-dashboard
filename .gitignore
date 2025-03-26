@@ -1,1 +1,35 @@
-node_modules
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+*.env.*
+!*.env.example
+
+# Node.js
+node_modules/
+dist/
+build/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# IDE/Editor spezifisch
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS spezifisch
+.DS_Store
+Thumbs.db
+
+# Build Artefakte etc.
+*.local
+
+# Cursor AI specific (falls vorhanden)
+.cursor/
