@@ -5,6 +5,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Toolbar,
+  Divider,
   Box,
   IconButton,
   useTheme,
@@ -14,17 +16,17 @@ import {
   Brightness7 as LightModeIcon,
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
+  FilterList as FilterListIcon,
 } from '@mui/icons-material';
 
-const Sidebar = ({ width, onThemeToggle }) => {
+const Sidebar = ({ width, onThemeToggle, variant, sx }) => {
   const theme = useTheme();
 
   return (
     <Drawer
-      variant="permanent"
+      variant={variant}
       sx={{
-        width: width,
-        flexShrink: 0,
+        ...sx,
         '& .MuiDrawer-paper': {
           width: width,
           boxSizing: 'border-box',
@@ -33,22 +35,28 @@ const Sidebar = ({ width, onThemeToggle }) => {
         },
       }}
     >
-      <Box sx={{ overflow: 'auto', mt: 2 }}>
-        <List>
-          <ListItem button>
-            <ListItemIcon>
-              <DashboardIcon />
-            </ListItemIcon>
-            <ListItemText primary="Dashboard" />
-          </ListItem>
-          <ListItem button>
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            <ListItemText primary="Settings" />
-          </ListItem>
-        </List>
-      </Box>
+      <Toolbar />
+      <Divider />
+      <List>
+        <ListItem button>
+          <ListItemIcon>
+            <DashboardIcon />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItem>
+        <ListItem button>
+          <ListItemIcon>
+            <FilterListIcon />
+          </ListItemIcon>
+          <ListItemText primary="Filter" />
+        </ListItem>
+        <ListItem button>
+          <ListItemIcon>
+            <SettingsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Settings" />
+        </ListItem>
+      </List>
       <Box sx={{ mt: 'auto', p: 2 }}>
         <IconButton onClick={onThemeToggle} color="inherit">
           {theme.palette.mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
