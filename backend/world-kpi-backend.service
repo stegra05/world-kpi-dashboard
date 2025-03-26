@@ -1,0 +1,15 @@
+[Unit]
+Description=World KPI Dashboard Backend
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/world-kpi-dashboard/backend
+Environment="PATH=/var/www/world-kpi-dashboard/backend/venv/bin"
+EnvironmentFile=/var/www/world-kpi-dashboard/backend/.env.production
+ExecStart=/var/www/world-kpi-dashboard/backend/venv/bin/gunicorn -c gunicorn_config.py main:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target 

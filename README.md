@@ -9,6 +9,7 @@ Eine Webanwendung zur Visualisierung von Key Performance Indicators (KPIs) aus e
 * **Backend:** Python, FastAPI, Pandas
 * **Frontend:** React (mit Vite), **Material UI (MUI)**, Plotly.js (für Karten/Charts), Chart.js (optional), Axios
 * **Entwicklungsumgebung:** Cursor AI, Git
+* **Produktion:** Gunicorn, Nginx, systemd
 
 ## Features
 
@@ -89,3 +90,104 @@ Die Umgebungsvariablen werden automatisch beim Build-Prozess eingefügt. Für lo
 ## API Endpunkte
 
 Details siehe `ARCHITECTURE.md`. Hauptendpunkt: `GET /api/data`.
+
+## Deployment
+
+### Voraussetzungen
+
+* Ubuntu/Debian Server
+* Python 3.8+
+* Node.js 16+
+* Nginx
+* SSL-Zertifikate (für HTTPS)
+
+### Installation der Server-Abhängigkeiten
+
+```bash
+# System-Pakete aktualisieren
+sudo apt update && sudo apt upgrade -y
+
+# Python und Node.js installieren
+sudo apt install -y python3-venv python3-pip nodejs npm nginx
+
+# SSL-Zertifikate installieren (optional)
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### Deployment-Schritte
+
+1. **Repository auf Server klonen:**
+   ```bash
+   sudo mkdir -p /var/www
+   cd /var/www
+   sudo git clone <repository-url> world-kpi-dashboard
+   sudo chown -R $USER:$USER world-kpi-dashboard
+   ```
+
+2. **Umgebungsvariablen anpassen:**
+   ```bash
+   # Backend
+   cd /var/www/world-kpi-dashboard/backend
+   cp .env.production .env
+   # .env Datei mit den korrekten Werten bearbeiten
+
+   # Frontend
+   cd /var/www/world-kpi-dashboard/frontend
+   cp .env.production .env
+   # .env Datei mit den korrekten Werten bearbeiten
+   ```
+
+3. **Deployment-Skript ausführen:**
+   ```bash
+   cd /var/www/world-kpi-dashboard
+   chmod +x deploy/deploy.sh
+   ./deploy/deploy.sh
+   ```
+
+4. **SSL-Zertifikate einrichten (optional):**
+   ```bash
+   sudo certbot --nginx -d your-frontend-domain.com -d your-api-domain.com
+   ```
+
+### Wartung
+
+* **Logs überprüfen:**
+  ```bash
+  # Backend Logs
+  sudo journalctl -u world-kpi-backend
+
+  # Nginx Logs
+  sudo tail -f /var/log/nginx/access.log
+  sudo tail -f /var/log/nginx/error.log
+  ```
+
+* **Services neustarten:**
+  ```bash
+  sudo systemctl restart world-kpi-backend
+  sudo systemctl restart nginx
+  ```
+
+* **Updates einspielen:**
+  ```bash
+  cd /var/www/world-kpi-dashboard
+  sudo git pull
+  ./deploy/deploy.sh
+  ```
+
+### Sicherheit
+
+* Firewall-Konfiguration:
+  ```bash
+  sudo ufw allow 80/tcp
+  sudo ufw allow 443/tcp
+  ```
+
+* Regelmäßige Sicherheitsupdates:
+  ```bash
+  sudo apt update && sudo apt upgrade -y
+  ```
+
+* SSL-Zertifikate erneuern (falls Let's Encrypt verwendet):
+  ```bash
+  sudo certbot renew
+  ```
