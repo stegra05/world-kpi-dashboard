@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Box, CircularProgress, Alert, Button, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -70,8 +70,75 @@ ErrorState.propTypes = {
 function App() {
   const { kpiData, isLoading, error, refetch } = useKpiData();
   const { toggleDarkMode, isDarkMode } = useTheme();
-  const [selectedMetric, setSelectedMetric] = useState('');
-  const [selectedBattAlias, setSelectedBattAlias] = useState('');
+  
+  // Centralized filter state
+  const [selectedFilters, setSelectedFilters] = useState({
+    battAlias: '',
+    var: '',
+    continent: '',
+    country: '',
+  });
+  const [filteredData, setFilteredData] = useState([]);
+  const [selectedCountryIso, setSelectedCountryIso] = useState(null);
+
+  // Callback to handle filter changes
+  const handleFiltersChange = useCallback((newFilters) => {
+    setSelectedFilters(prev => ({
+      ...prev,
+      ...newFilters
+    }));
+  }, []);
+
+  // Handler for country click
+  const handleCountryClick = useCallback((isoCode) => {
+    if (!isoCode) return;
+    
+    setSelectedCountryIso(isoCode);
+    // Find the country name from kpiData
+    const countryData = kpiData.find(item => item.iso_a3 === isoCode);
+    if (countryData) {
+      setSelectedFilters(prev => ({
+        ...prev,
+        country: countryData.country
+      }));
+    } else {
+      // If country not found, clear the selection
+      setSelectedCountryIso(null);
+      setSelectedFilters(prev => ({
+        ...prev,
+        country: ''
+      }));
+      console.warn(`Country with ISO code ${isoCode} not found in data`);
+    }
+  }, [kpiData]);
+
+  // Effect to filter data based on selected filters
+  useEffect(() => {
+    if (!kpiData) return;
+
+    let filtered = [...kpiData];
+
+    // Apply filters
+    if (selectedFilters.battAlias) {
+      filtered = filtered.filter(item => item.battAlias === selectedFilters.battAlias);
+    }
+    if (selectedFilters.var) {
+      filtered = filtered.filter(item => item.var === selectedFilters.var);
+    }
+    if (selectedFilters.continent) {
+      filtered = filtered.filter(item => item.continent === selectedFilters.continent);
+    }
+    if (selectedFilters.country) {
+      filtered = filtered.filter(item => item.country === selectedFilters.country);
+    }
+
+    // If no data after filtering, clear country selection
+    if (filtered.length === 0 && selectedCountryIso) {
+      setSelectedCountryIso(null);
+    }
+
+    setFilteredData(filtered);
+  }, [kpiData, selectedFilters, selectedCountryIso]);
 
   if (isLoading) {
     return <LoadingState onRetry={refetch} />;
@@ -98,6 +165,9 @@ function App() {
         width={drawerWidth} 
         onThemeToggle={toggleDarkMode}
         variant="permanent"
+        data={kpiData}
+        selectedFilters={selectedFilters}
+        onFiltersChange={handleFiltersChange}
         sx={{
           width: drawerWidth,
           flexShrink: 0,
@@ -110,11 +180,10 @@ function App() {
       
       <Box component="main" sx={styles.main}>
         <MainContent
-          data={kpiData}
-          selectedMetric={selectedMetric}
-          selectedBattAlias={selectedBattAlias}
-          onMetricChange={setSelectedMetric}
-          onBattAliasChange={setSelectedBattAlias}
+          data={filteredData}
+          selectedFilters={selectedFilters}
+          selectedCountryIso={selectedCountryIso}
+          onCountryClick={handleCountryClick}
         />
       </Box>
     </Box>

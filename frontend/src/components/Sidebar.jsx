@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   Drawer,
   List,
@@ -15,11 +16,10 @@ import {
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
   Dashboard as DashboardIcon,
-  Settings as SettingsIcon,
-  FilterList as FilterListIcon,
 } from '@mui/icons-material';
+import FilterPanel from './FilterPanel';
 
-const Sidebar = ({ width, onThemeToggle, variant, sx }) => {
+const Sidebar = ({ width, onThemeToggle, variant, sx, data, selectedFilters, onFiltersChange }) => {
   const theme = useTheme();
 
   return (
@@ -38,25 +38,21 @@ const Sidebar = ({ width, onThemeToggle, variant, sx }) => {
       <Toolbar />
       <Divider />
       <List>
-        <ListItem button>
+        <ListItem>
           <ListItemIcon>
             <DashboardIcon />
           </ListItemIcon>
           <ListItemText primary="Dashboard" />
         </ListItem>
-        <ListItem button>
-          <ListItemIcon>
-            <FilterListIcon />
-          </ListItemIcon>
-          <ListItemText primary="Filter" />
-        </ListItem>
-        <ListItem button>
-          <ListItemIcon>
-            <SettingsIcon />
-          </ListItemIcon>
-          <ListItemText primary="Settings" />
-        </ListItem>
       </List>
+      <Divider />
+      <Box sx={{ p: 2 }}>
+        <FilterPanel
+          data={data}
+          selectedFilters={selectedFilters}
+          onFiltersChange={onFiltersChange}
+        />
+      </Box>
       <Box sx={{ mt: 'auto', p: 2 }}>
         <IconButton onClick={onThemeToggle} color="inherit">
           {theme.palette.mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
@@ -64,6 +60,16 @@ const Sidebar = ({ width, onThemeToggle, variant, sx }) => {
       </Box>
     </Drawer>
   );
+};
+
+Sidebar.propTypes = {
+  width: PropTypes.number.isRequired,
+  onThemeToggle: PropTypes.func.isRequired,
+  variant: PropTypes.string.isRequired,
+  sx: PropTypes.object,
+  data: PropTypes.array.isRequired,
+  selectedFilters: PropTypes.object.isRequired,
+  onFiltersChange: PropTypes.func.isRequired,
 };
 
 export default Sidebar; 

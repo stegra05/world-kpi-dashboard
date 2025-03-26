@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   Card,
   CardContent,
@@ -7,7 +8,7 @@ import {
   useTheme,
 } from '@mui/material';
 
-const InfoCard = ({ title, value, icon }) => {
+const InfoCard = ({ title, value, subtitle, icon }) => {
   const theme = useTheme();
 
   return (
@@ -35,17 +36,6 @@ const InfoCard = ({ title, value, icon }) => {
             mb: 1,
           }}
         >
-          <Typography
-            variant="h6"
-            component="h2"
-            sx={{
-              color: theme.palette.text.secondary,
-              fontWeight: 500,
-              fontSize: '0.875rem',
-            }}
-          >
-            {title}
-          </Typography>
           {icon && (
             <Box
               sx={{
@@ -57,6 +47,17 @@ const InfoCard = ({ title, value, icon }) => {
               {icon}
             </Box>
           )}
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{
+              color: theme.palette.text.secondary,
+              fontWeight: 500,
+              fontSize: '0.875rem',
+            }}
+          >
+            {title}
+          </Typography>
         </Box>
         <Typography
           variant="h4"
@@ -70,9 +71,29 @@ const InfoCard = ({ title, value, icon }) => {
         >
           {value}
         </Typography>
+        {subtitle && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              fontSize: '0.875rem',
+              fontWeight: 400,
+              mt: 0.5,
+            }}
+          >
+            {subtitle}
+          </Typography>
+        )}
       </CardContent>
     </Card>
   );
+};
+
+InfoCard.propTypes = {
+  title: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  subtitle: PropTypes.string,
+  icon: PropTypes.node,
 };
 
 export default InfoCard; 
