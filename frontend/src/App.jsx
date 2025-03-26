@@ -1,83 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import { Box, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-import axios from 'axios';
+import React, { useState } from 'react';
+import { Box, CircularProgress, Alert, Button } from '@mui/material';
 import Map from './components/Map';
 import Filters from './components/Filters';
 import Sidebar from './components/Sidebar';
+import { useKpiData } from './hooks/useKpiData';
+import { useTheme } from './context/ThemeContext';
 
 const drawerWidth = 240;
 
 function App() {
-  const [data, setData] = useState([]);
+  const { kpiData, isLoading, error, refetch } = useKpiData();
+  const { toggleDarkMode } = useTheme();
   const [selectedMetric, setSelectedMetric] = useState('');
   const [selectedBattAlias, setSelectedBattAlias] = useState('');
-  const [darkMode, setDarkMode] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  const theme = createTheme({
-    palette: {
-      mode: darkMode ? 'dark' : 'light',
-    },
-  });
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+        <Button onClick={refetch} sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </Box>
+    );
+  }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('http://localhost:8000/api/data');
-        setData(response.data);
-        // Set initial selections if data is available
-        if (response.data.length > 0) {
-          setSelectedMetric(response.data[0].var);
-          setSelectedBattAlias(response.data[0].battAlias);
-        }
-      } catch (err) {
-        setError('Failed to fetch data. Please try again later.');
-        console.error('Error fetching data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const handleThemeToggle = () => {
-    setDarkMode(!darkMode);
-  };
-
-  if (loading) return <Box sx={{ p: 3 }}>Loading...</Box>;
-  if (error) return <Box sx={{ p: 3, color: 'error.main' }}>{error}</Box>;
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={refetch}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box sx={{ display: 'flex' }}>
-        <Sidebar width={drawerWidth} onThemeToggle={handleThemeToggle} />
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: 3,
-            width: { sm: `calc(100% - ${drawerWidth}px)` },
-            ml: { sm: `${drawerWidth}px` },
-          }}
-        >
-          <Filters
-            data={data}
-            selectedMetric={selectedMetric}
-            selectedBattAlias={selectedBattAlias}
-            onMetricChange={setSelectedMetric}
-            onBattAliasChange={setSelectedBattAlias}
-          />
-          <Map
-            data={data}
-            selectedMetric={selectedMetric}
-            selectedBattAlias={selectedBattAlias}
-          />
+    <Box sx={{ display: 'flex' }}>
+      <Sidebar width={drawerWidth} onThemeToggle={toggleDarkMode} />
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: 3,
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          ml: { sm: `${drawerWidth}px` },
+        }}
+      >
+        <Box sx={{ mb: 2 }}>
+          Loaded {kpiData.length} datasets
         </Box>
+        <Filters
+          data={kpiData}
+          selectedMetric={selectedMetric}
+          selectedBattAlias={selectedBattAlias}
+          onMetricChange={setSelectedMetric}
+          onBattAliasChange={setSelectedBattAlias}
+        />
+        <Map
+          data={kpiData}
+          selectedMetric={selectedMetric}
+          selectedBattAlias={selectedBattAlias}
+        />
       </Box>
-    </ThemeProvider>
+    </Box>
   );
 }
 
