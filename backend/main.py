@@ -1,9 +1,11 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from typing import List, Dict, Any, Optional
 import uvicorn
 import pandas as pd
 from pathlib import Path
+import logging
 
 from .models.data_model import (
     KPIData, 
@@ -15,6 +17,10 @@ from .models.data_model import (
 )
 from .services.data_service import DataService
 from .config.settings import DATA_FILE, CORS_ORIGINS
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="World KPI Dashboard API",
@@ -32,7 +38,20 @@ app.add_middleware(
 )
 
 # Initialize data service
-data_service = DataService(DATA_FILE)
+try:
+    data_service = DataService(DATA_FILE)
+except Exception as e:
+    logger.error(f"Failed to initialize DataService: {str(e)}")
+    raise
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler for unhandled exceptions."""
+    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An unexpected error occurred. Please try again later."}
+    )
 
 @app.get("/", response_model=Dict[str, str])
 async def root() -> Dict[str, str]:
@@ -57,10 +76,13 @@ async def get_data() -> List[KPIData]:
     """
     try:
         return data_service.get_all_data()
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error in get_data endpoint: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to load KPI data: {str(e)}"
+            detail="Failed to load KPI data. Please try again later."
         )
 
 @app.get("/api/v1/metrics", response_model=MetricsResponse)
@@ -76,11 +98,19 @@ async def get_metrics() -> MetricsResponse:
     """
     try:
         metrics = data_service.get_unique_metrics()
+        if not metrics:
+            raise HTTPException(
+                status_code=404,
+                detail="No metrics found in the dataset"
+            )
         return MetricsResponse(metrics=metrics)
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error in get_metrics endpoint: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve metrics: {str(e)}"
+            detail="Failed to retrieve metrics. Please try again later."
         )
 
 @app.get("/api/v1/batt-aliases", response_model=BattAliasesResponse)
@@ -96,11 +126,19 @@ async def get_batt_aliases() -> BattAliasesResponse:
     """
     try:
         aliases = data_service.get_unique_batt_aliases()
+        if not aliases:
+            raise HTTPException(
+                status_code=404,
+                detail="No battery aliases found in the dataset"
+            )
         return BattAliasesResponse(batt_aliases=aliases)
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error in get_batt_aliases endpoint: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve battery aliases: {str(e)}"
+            detail="Failed to retrieve battery aliases. Please try again later."
         )
 
 @app.get("/api/v1/data/filtered", response_model=FilteredDataResponse)
@@ -123,19 +161,10 @@ async def get_filtered_data(
     """
     try:
         # Validate input parameters
-        available_metrics = data_service.get_unique_metrics()
-        available_aliases = data_service.get_unique_batt_aliases()
-        
-        if metric not in available_metrics:
+        if not metric or not batt_alias:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid metric. Available metrics: {available_metrics}"
-            )
-            
-        if batt_alias not in available_aliases:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid battery alias. Available aliases: {available_aliases}"
+                detail="Both metric and batt_alias parameters are required"
             )
         
         # Get filtered data
@@ -150,9 +179,10 @@ async def get_filtered_data(
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error in get_filtered_data endpoint: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve filtered data: {str(e)}"
+            detail="Failed to retrieve filtered data. Please try again later."
         )
 
 @app.get("/api/v1/continents", response_model=ContinentsResponse)
@@ -168,11 +198,19 @@ async def get_continents() -> ContinentsResponse:
     """
     try:
         continents = data_service.get_unique_continents()
+        if not continents:
+            raise HTTPException(
+                status_code=404,
+                detail="No continents found in the dataset"
+            )
         return ContinentsResponse(continents=continents)
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error in get_continents endpoint: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve continents: {str(e)}"
+            detail="Failed to retrieve continents. Please try again later."
         )
 
 if __name__ == "__main__":

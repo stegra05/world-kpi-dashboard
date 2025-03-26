@@ -5,6 +5,34 @@ const TIMEOUT_MS = 5000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
+const getErrorMessage = (error) => {
+  if (error.response) {
+    // Server responded with error status
+    const status = error.response.status;
+    const detail = error.response.data?.detail || 'Unknown error';
+    
+    switch (status) {
+      case 400:
+        return `Invalid request: ${detail}`;
+      case 404:
+        return `Resource not found: ${detail}`;
+      case 500:
+        return `Server error: ${detail}`;
+      default:
+        return `Server error (${status}): ${detail}`;
+    }
+  } else if (error.request) {
+    // Request was made but no response received
+    if (error.code === 'ECONNABORTED') {
+      return 'Request timed out. Please check your connection and try again.';
+    }
+    return 'No response from server. Please check your connection and try again.';
+  } else {
+    // Error in request setup
+    return `Request error: ${error.message}`;
+  }
+};
+
 export const useKpiData = () => {
   const [kpiData, setKpiData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,14 +65,17 @@ export const useKpiData = () => {
 
       setKpiData(response.data);
       setIsLoading(false);
+      setError(null);
     } catch (err) {
-      if (retryCount < MAX_RETRIES && !err.response) {
+      // Handle network errors with retry
+      if (retryCount < MAX_RETRIES && (!err.response || err.code === 'ECONNABORTED')) {
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         return fetchDataWithRetry(retryCount + 1);
       }
       
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch data';
-      setError(`Error: ${errorMessage}${retryCount > 0 ? ` (after ${retryCount} retries)` : ''}`);
+      const errorMessage = getErrorMessage(err);
+      const retryInfo = retryCount > 0 ? ` (after ${retryCount} retries)` : '';
+      setError(`${errorMessage}${retryInfo}`);
       setIsLoading(false);
     }
   };

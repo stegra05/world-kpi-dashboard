@@ -1,8 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { Box, CircularProgress, Alert, Button, AppBar, Toolbar, Typography, IconButton } from '@mui/material';
+import { 
+  Box, 
+  CircularProgress, 
+  Alert, 
+  Button, 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  IconButton,
+  Paper,
+  Stack
+} from '@mui/material';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import { useKpiData } from './hooks/useKpiData';
@@ -31,13 +44,35 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     height: '100vh',
+    gap: 2,
+  },
+  errorContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    p: 3,
+  },
+  errorPaper: {
+    p: 3,
+    maxWidth: 600,
+    width: '100%',
   },
 };
 
 const LoadingState = ({ onRetry }) => (
   <Box sx={styles.loadingContainer}>
     <CircularProgress />
-    <Button onClick={onRetry} sx={{ mt: 2 }}>
+    <Typography variant="body1" color="text.secondary">
+      Loading KPI data...
+    </Typography>
+    <Button 
+      variant="outlined" 
+      startIcon={<RefreshIcon />}
+      onClick={onRetry}
+      sx={{ mt: 2 }}
+    >
       Retry
     </Button>
   </Box>
@@ -47,20 +82,52 @@ LoadingState.propTypes = {
   onRetry: PropTypes.func.isRequired,
 };
 
-const ErrorState = ({ error, onRetry }) => (
-  <Box sx={{ p: 3 }}>
-    <Alert 
-      severity="error" 
-      action={
-        <Button color="inherit" size="small" onClick={onRetry}>
-          Retry
-        </Button>
-      }
-    >
-      {error}
-    </Alert>
-  </Box>
-);
+const ErrorState = ({ error, onRetry }) => {
+  // Determine error severity based on message
+  const isNetworkError = error.toLowerCase().includes('connection') || 
+                        error.toLowerCase().includes('timeout');
+  const isServerError = error.toLowerCase().includes('server error');
+  const isNotFound = error.toLowerCase().includes('not found');
+  
+  const severity = isNetworkError ? 'warning' : 
+                   isServerError ? 'error' : 
+                   isNotFound ? 'info' : 'error';
+
+  return (
+    <Box sx={styles.errorContainer}>
+      <Paper elevation={3} sx={styles.errorPaper}>
+        <Stack spacing={2}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ErrorOutlineIcon color={severity} />
+            <Typography variant="h6" component="div">
+              {isNetworkError ? 'Connection Error' :
+               isServerError ? 'Server Error' :
+               isNotFound ? 'Resource Not Found' :
+               'Error'}
+            </Typography>
+          </Box>
+          
+          <Alert 
+            severity={severity}
+            sx={{ mt: 1 }}
+          >
+            {error}
+          </Alert>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+            <Button 
+              variant="contained" 
+              startIcon={<RefreshIcon />}
+              onClick={onRetry}
+            >
+              Retry
+            </Button>
+          </Box>
+        </Stack>
+      </Paper>
+    </Box>
+  );
+};
 
 ErrorState.propTypes = {
   error: PropTypes.string.isRequired,
