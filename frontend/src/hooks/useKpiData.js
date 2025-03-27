@@ -39,9 +39,12 @@ const getErrorMessage = (error) => {
 export const useKpiData = () => {
   const [kpiData, setKpiData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [variableDescriptions, setVariableDescriptions] = useState({});
 
-  const fetchDataWithRetry = async (retryCount = 0) => {
+  const fetchDataWithRetry = async (retryCount = 0, isRefresh = false) => {
     try {
       console.log('Fetching data from:', `${API_URL}/data`);  // Add debug log
       const response = await axios.get(`${API_URL}/data`, {
@@ -96,6 +99,15 @@ export const useKpiData = () => {
         throw new Error('Invalid data format: Missing or invalid required fields');
       }
 
+      // Create mapping of variable descriptions
+      const descriptions = response.data.reduce((acc, item) => {
+        if (item.var && item.descr) {
+          acc[item.var] = item.descr;
+        }
+        return acc;
+      }, {});
+      setVariableDescriptions(descriptions);
+
       // Add climate field if not present in any item and ensure proper types
       const dataWithClimate = response.data.map(item => ({
         ...item,
@@ -111,30 +123,41 @@ export const useKpiData = () => {
 
       setKpiData(dataWithClimate);
       setIsLoading(false);
+      setIsRefreshing(false);
       setError(null);
     } catch (err) {
       // Handle network errors with retry
       if (retryCount < MAX_RETRIES && (!err.response || err.code === 'ECONNABORTED')) {
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-        return fetchDataWithRetry(retryCount + 1);
+        return fetchDataWithRetry(retryCount + 1, isRefresh);
       }
       
       const errorMessage = getErrorMessage(err);
       const retryInfo = retryCount > 0 ? ` (after ${retryCount} retries)` : '';
       setError(`${errorMessage}${retryInfo}`);
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   const refetch = () => {
-    setIsLoading(true);
+    setIsRefreshing(true);
     setError(null);
-    fetchDataWithRetry();
+    fetchDataWithRetry(0, true);
   };
 
   useEffect(() => {
     fetchDataWithRetry();
   }, []);
 
-  return { kpiData, isLoading, error, refetch };
+  return { 
+    kpiData, 
+    isLoading, 
+    isFiltering, 
+    isRefreshing,
+    error, 
+    refetch, 
+    variableDescriptions,
+    setIsFiltering 
+  };
 }; 

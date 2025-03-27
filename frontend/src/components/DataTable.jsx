@@ -7,7 +7,9 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 const DataTable = ({ 
   data = [], 
   isLoading = false, 
-  selectedCountryIso = null 
+  selectedCountryIso = null,
+  selectedVar = '',
+  variableDescriptions = {}
 }) => {
   const theme = useTheme();
 
@@ -37,7 +39,9 @@ const DataTable = ({
     },
     { 
       field: 'var', 
-      headerName: 'Variable', 
+      headerName: selectedVar && variableDescriptions[selectedVar] 
+        ? variableDescriptions[selectedVar] 
+        : 'Variable',
       flex: 0.8,
       minWidth: 120 
     },
@@ -85,7 +89,7 @@ const DataTable = ({
         </Tooltip>
       )
     }
-  ], []);
+  ], [selectedVar, variableDescriptions]);
 
   // Add unique IDs to rows and validate data
   const rows = useMemo(() => {
@@ -196,6 +200,8 @@ DataTable.propTypes = {
   })),
   isLoading: PropTypes.bool,
   selectedCountryIso: PropTypes.string,
+  selectedVar: PropTypes.string,
+  variableDescriptions: PropTypes.objectOf(PropTypes.string),
 };
 
 export default DataTable; 

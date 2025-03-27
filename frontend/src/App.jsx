@@ -10,16 +10,21 @@ import {
   Typography, 
   IconButton,
   Paper,
-  Stack
+  Stack,
+  Backdrop
 } from '@mui/material';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import {
+  Brightness4 as Brightness4Icon,
+  Brightness7 as Brightness7Icon,
+  TableChart as TableChartIcon,
+  TableChartOutlined as TableChartOutlinedIcon,
+  Refresh as RefreshIcon,
+  ErrorOutline as ErrorOutlineIcon,
+} from '@mui/icons-material';
+import { useTheme } from './context/ThemeContext';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import { useKpiData } from './hooks/useKpiData';
-import { useTheme } from './context/ThemeContext';
 
 const drawerWidth = 240;
 
@@ -59,6 +64,9 @@ const styles = {
     maxWidth: 600,
     width: '100%',
   },
+  backdrop: {
+    zIndex: (theme) => theme.zIndex.drawer + 2,
+  },
 };
 
 const LoadingState = ({ onRetry }) => (
@@ -82,52 +90,29 @@ LoadingState.propTypes = {
   onRetry: PropTypes.func.isRequired,
 };
 
-const ErrorState = ({ error, onRetry }) => {
-  // Determine error severity based on message
-  const isNetworkError = error.toLowerCase().includes('connection') || 
-                        error.toLowerCase().includes('timeout');
-  const isServerError = error.toLowerCase().includes('server error');
-  const isNotFound = error.toLowerCase().includes('not found');
-  
-  const severity = isNetworkError ? 'warning' : 
-                   isServerError ? 'error' : 
-                   isNotFound ? 'info' : 'error';
-
-  return (
-    <Box sx={styles.errorContainer}>
-      <Paper elevation={3} sx={styles.errorPaper}>
-        <Stack spacing={2}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <ErrorOutlineIcon color={severity} />
-            <Typography variant="h6" component="div">
-              {isNetworkError ? 'Connection Error' :
-               isServerError ? 'Server Error' :
-               isNotFound ? 'Resource Not Found' :
-               'Error'}
-            </Typography>
-          </Box>
-          
-          <Alert 
-            severity={severity}
-            sx={{ mt: 1 }}
-          >
-            {error}
-          </Alert>
-
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-            <Button 
-              variant="contained" 
-              startIcon={<RefreshIcon />}
-              onClick={onRetry}
-            >
-              Retry
-            </Button>
-          </Box>
-        </Stack>
-      </Paper>
-    </Box>
-  );
-};
+const ErrorState = ({ error, onRetry }) => (
+  <Box sx={styles.errorContainer}>
+    <Paper elevation={3} sx={styles.errorPaper}>
+      <Stack spacing={2} alignItems="center">
+        <ErrorOutlineIcon sx={{ fontSize: 48, color: 'error.main' }} />
+        <Typography variant="h6" color="error">
+          Error Loading Data
+        </Typography>
+        <Typography variant="body1" color="text.secondary" align="center">
+          {error}
+        </Typography>
+        <Button 
+          variant="contained" 
+          startIcon={<RefreshIcon />}
+          onClick={onRetry}
+          sx={{ mt: 2 }}
+        >
+          Retry
+        </Button>
+      </Stack>
+    </Paper>
+  </Box>
+);
 
 ErrorState.propTypes = {
   error: PropTypes.string.isRequired,
@@ -135,7 +120,15 @@ ErrorState.propTypes = {
 };
 
 function App() {
-  const { kpiData, isLoading, error, refetch } = useKpiData();
+  const { 
+    kpiData, 
+    isLoading, 
+    isFiltering, 
+    isRefreshing,
+    error, 
+    refetch,
+    setIsFiltering 
+  } = useKpiData();
   const { toggleDarkMode, isDarkMode } = useTheme();
   
   // Centralized filter state
@@ -148,15 +141,17 @@ function App() {
   });
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCountryIso, setSelectedCountryIso] = useState(null);
+  const [showTable, setShowTable] = useState(true);
 
   // Callback to handle filter changes
   const handleFiltersChange = useCallback((newFilters) => {
     console.log('Filter changed:', newFilters);  // Debug log
+    setIsFiltering(true);
     setSelectedFilters(prev => ({
       ...prev,
       ...newFilters
     }));
-  }, []);
+  }, [setIsFiltering]);
 
   // Handler for country click
   const handleCountryClick = useCallback((isoCode) => {
@@ -186,6 +181,7 @@ function App() {
     if (!kpiData || !Array.isArray(kpiData)) {
       console.log('No data available for filtering');  // Debug log
       setFilteredData([]);
+      setIsFiltering(false);
       return;
     }
 
@@ -201,7 +197,8 @@ function App() {
 
     console.log('Filtered data length:', filtered.length);  // Debug log
     setFilteredData(filtered);
-  }, [kpiData, selectedFilters]);
+    setIsFiltering(false);
+  }, [kpiData, selectedFilters, setIsFiltering]);
 
   if (isLoading) {
     return <LoadingState onRetry={refetch} />;
@@ -218,6 +215,13 @@ function App() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             World KPI Dashboard
           </Typography>
+          <IconButton 
+            onClick={() => setShowTable(!showTable)} 
+            color="inherit"
+            sx={{ mr: 1 }}
+          >
+            {showTable ? <TableChartIcon /> : <TableChartOutlinedIcon />}
+          </IconButton>
           <IconButton onClick={toggleDarkMode} color="inherit">
             {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
@@ -228,7 +232,7 @@ function App() {
         kpiData={kpiData}
         selectedFilters={selectedFilters}
         onFiltersChange={handleFiltersChange}
-        isLoading={isLoading}
+        isLoading={isLoading || isFiltering}
       />
 
       <Box component="main" sx={styles.main}>
@@ -239,8 +243,19 @@ function App() {
           selectedFilters={selectedFilters}
           selectedCountryIso={selectedCountryIso}
           onCountryClick={handleCountryClick}
+          showTable={showTable}
+          isLoading={isLoading || isFiltering}
         />
       </Box>
+
+      {/* Global loading backdrop for refreshing */}
+      <Backdrop
+        sx={styles.backdrop}
+        open={isRefreshing}
+        onClick={() => {}}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </Box>
   );
 }

@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import { Box, Toolbar, Grid, CircularProgress, Paper, useTheme, useMediaQuery, Skeleton } from '@mui/material';
 import {
   Public as PublicIcon,
-  DirectionsCar as CarIcon,
+  DirectionsCar as DirectionsCarIcon,
   BatteryChargingFull as BatteryIcon,
   LocationOn as LocationIcon,
 } from '@mui/icons-material';
 import WorldMap from './WorldMap';
 import InfoCard from './InfoCard';
 import DataTable from './DataTable';
+import FilterChips from './FilterChips';
 
 const styles = {
   container: {
@@ -76,11 +77,12 @@ const MainContent = ({
   filteredData = [], 
   selectedFilters, 
   selectedCountryIso = null, 
-  onCountryClick 
+  onCountryClick,
+  showTable = true,
+  isLoading = false
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const isLoading = !kpiData || kpiData.length === 0;
 
   // Calculate statistics based on filtered data
   const stats = useMemo(() => {
@@ -179,7 +181,7 @@ const MainContent = ({
               title="Total Vehicles"
               value={stats.totalVehicles.toLocaleString()}
               subtitle="Sum of vehicles in filtered data"
-              icon={<CarIcon />}
+              icon={<DirectionsCarIcon />}
             />
           </Paper>
         </Grid>
@@ -206,10 +208,13 @@ const MainContent = ({
         {renderInfoCards()}
       </Grid>
 
+      {/* Active Filters */}
+      <FilterChips selectedFilters={selectedFilters} />
+
       {/* Map and Table */}
       <Grid container spacing={{ xs: 1, sm: 2, md: 3 }}>
         {/* World Map */}
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={showTable ? 8 : 12}>
           <Paper elevation={2} sx={styles.mapPaper}>
             {isLoading ? (
               <Box sx={styles.loadingOverlay}>
@@ -227,15 +232,24 @@ const MainContent = ({
         </Grid>
 
         {/* Data Table */}
-        <Grid item xs={12} md={4}>
-          <Paper elevation={2} sx={styles.tablePaper}>
-            <DataTable
-              data={filteredData}
-              isLoading={isLoading}
-              selectedCountryIso={selectedCountryIso}
-            />
-          </Paper>
-        </Grid>
+        {showTable && (
+          <Grid item xs={12} md={4}>
+            <Paper elevation={2} sx={styles.tablePaper}>
+              <DataTable
+                data={filteredData}
+                isLoading={isLoading}
+                selectedCountryIso={selectedCountryIso}
+                selectedVar={selectedFilters.var}
+                variableDescriptions={kpiData.reduce((acc, item) => {
+                  if (item.var && item.descr) {
+                    acc[item.var] = item.descr;
+                  }
+                  return acc;
+                }, {})}
+              />
+            </Paper>
+          </Grid>
+        )}
       </Grid>
     </Box>
   );
@@ -271,6 +285,13 @@ MainContent.propTypes = {
   }).isRequired,
   selectedCountryIso: PropTypes.string,
   onCountryClick: PropTypes.func.isRequired,
+  showTable: PropTypes.bool,
+  isLoading: PropTypes.bool,
+};
+
+MainContent.defaultProps = {
+  showTable: true,
+  isLoading: false,
 };
 
 export default MainContent; 

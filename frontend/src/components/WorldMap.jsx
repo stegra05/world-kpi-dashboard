@@ -79,6 +79,9 @@ const WorldMap = ({
         z: values,
         text,
         customdata,
+        hovertemplate: '<b>%{customdata}</b><br>' +
+                      `${selectedVar}: %{z:.2f}<br>` +
+                      '<extra></extra>',
         hoverinfo: 'text',
         colorscale: 'Blues',
         colorbar: {
@@ -127,22 +130,33 @@ const WorldMap = ({
       showland: true,
       landcolor: theme.palette.background.paper,
       showlakes: true,
-      lakecolor: theme.palette.background.default
+      lakecolor: theme.palette.background.default,
+      lataxis: {
+        range: [-60, 90], // Exclude Antarctica (south of -60°)
+        showgrid: false,
+        zeroline: false
+      },
+      lonaxis: {
+        showgrid: false,
+        zeroline: false
+      }
     },
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
     margin: { t: 0, l: 0, r: 0, b: 0 },
     height: isSmallScreen ? 300 : 500,
     autosize: true,
-    dragmode: false,
+    dragmode: 'zoom',
     showlegend: false,
   }), [isSmallScreen, theme.palette]);
 
   // Config for the plot
   const config = useMemo(() => ({
-    displayModeBar: false,
+    displayModeBar: true,
     responsive: true,
-    scrollZoom: false,
+    scrollZoom: true,
+    modeBarButtonsToAdd: ['zoom', 'pan', 'resetScale2d'],
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
   }), []);
 
   useEffect(() => {

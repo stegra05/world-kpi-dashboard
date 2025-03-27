@@ -13,7 +13,8 @@ from models.data_model import (
     BattAliasesResponse, 
     ContinentsResponse,
     FilteredDataResponse,
-    Continent
+    Continent,
+    ModelSeriesResponse
 )
 from services.data_service import DataService
 from config.settings import DATA_FILE, CORS_ORIGINS
@@ -173,6 +174,34 @@ async def get_continents() -> ContinentsResponse:
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve continents. Please try again later."
+        )
+
+@app.get("/api/v1/model-series", response_model=ModelSeriesResponse)
+async def get_model_series() -> ModelSeriesResponse:
+    """
+    Get list of unique model series available in the dataset.
+    
+    Returns:
+        ModelSeriesResponse: List of unique model series
+        
+    Raises:
+        HTTPException: If model series cannot be retrieved
+    """
+    try:
+        model_series = data_service.get_unique_model_series()
+        if not model_series:
+            raise HTTPException(
+                status_code=404,
+                detail="No model series found in the dataset"
+            )
+        return ModelSeriesResponse(model_series=model_series)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_model_series endpoint: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve model series. Please try again later."
         )
 
 @app.get("/api/v1/climates", response_model=List[str])

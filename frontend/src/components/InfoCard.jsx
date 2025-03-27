@@ -24,7 +24,8 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
   return (
     <Card
       sx={{
-        height: '100%',
+        height: 'auto',
+        minHeight: '100%',
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'background.paper',
@@ -98,9 +99,9 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
             sx={{
               fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
               fontWeight: 400,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              whiteSpace: 'normal',
+              wordBreak: 'break-word',
+              lineHeight: 1.4,
             }}
           >
             {subtitle}

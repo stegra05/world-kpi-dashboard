@@ -164,6 +164,16 @@ class DataService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error retrieving unique climates: {str(e)}")
 
+    def get_unique_model_series(self) -> List[str]:
+        """Get list of unique model series."""
+        try:
+            # Drop NaN values and empty strings, then get unique values
+            return self.df['model_series'].dropna().replace('', pd.NA).dropna().unique().tolist()
+        except KeyError:
+            raise HTTPException(status_code=500, detail="Column 'model_series' not found in dataset")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error retrieving unique model series: {str(e)}")
+
     def get_data_by_filters(
         self, 
         metric: str, 

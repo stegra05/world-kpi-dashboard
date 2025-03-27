@@ -51,4 +51,15 @@ class FilteredDataResponse(BaseModel):
     metric: str
     batt_alias: str
     continent: Optional[str] = ''
-    climate: Optional[str] = '' 
+    climate: Optional[str] = ''
+
+class ModelSeriesResponse(BaseModel):
+    model_series: List[str]
+
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "model_series": ["295", "247", "all"]
+            }
+        } 
