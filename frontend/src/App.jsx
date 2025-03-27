@@ -28,6 +28,7 @@ import { useTheme } from './context/ThemeContext';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import { useKpiData } from './hooks/useKpiData';
+import FilterChips from './components/FilterChips';
 
 const drawerWidth = 240;
 
@@ -249,9 +250,28 @@ function App() {
     <Box sx={styles.root}>
       <AppBar position="fixed" sx={styles.appBar}>
         <Toolbar>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" noWrap component="div" sx={{ mr: 3 }}>
             World KPI Dashboard
           </Typography>
+          <Box sx={{ 
+            flexGrow: 1, 
+            display: 'flex', 
+            alignItems: 'center',
+            overflow: 'hidden',
+          }}>
+            <FilterChips 
+              selectedFilters={selectedFilters} 
+              onResetSelection={(newFilters) => {
+                const updatedFilters = { ...selectedFilters };
+                Object.keys(newFilters).forEach(key => {
+                  if (newFilters[key] === '') {
+                    updatedFilters[key] = '';
+                  }
+                });
+                handleResetSelection(updatedFilters);
+              }}
+            />
+          </Box>
           <IconButton 
             onClick={() => setShowTable(!showTable)} 
             color="inherit"

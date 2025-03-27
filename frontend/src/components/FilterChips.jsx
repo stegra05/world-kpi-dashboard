@@ -1,18 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Box, Chip, Typography, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Chip, Stack } from '@mui/material';
 import {
   BatteryChargingFull as BatteryIcon,
   Functions as FunctionsIcon,
   Public as ContinentIcon,
   Thermostat as ClimateIcon,
   Category as ModelSeriesIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 
-const FilterChips = ({ selectedFilters }) => {
-  const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
+const FilterChips = ({ selectedFilters, onResetSelection }) => {
   const filterConfig = [
     {
       key: 'battAlias',
@@ -52,40 +50,65 @@ const FilterChips = ({ selectedFilters }) => {
     return null;
   }
 
+  const handleDelete = (filterKey) => {
+    onResetSelection({
+      ...selectedFilters,
+      [filterKey]: ''
+    });
+  };
+
   return (
     <Box sx={{ 
-      mb: 2,
       display: 'flex',
-      flexWrap: 'wrap',
-      gap: 1,
       alignItems: 'center',
+      overflow: 'auto',
+      maxWidth: '100%',
+      '&::-webkit-scrollbar': {
+        height: '4px',
+      },
+      '&::-webkit-scrollbar-track': {
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: '2px',
+      },
     }}>
-      <Typography
-        variant="subtitle2"
-        color="text.secondary"
+      <Stack 
+        direction="row" 
+        spacing={1} 
         sx={{ 
-          mr: 1,
-          fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
+          py: 0.5,
+          flexWrap: 'nowrap',
         }}
       >
-        Active Filters:
-      </Typography>
-      {activeFilters.map(filter => (
-        <Chip
-          key={filter.key}
-          icon={filter.icon}
-          label={`${filter.label}: ${filter.value}`}
-          size={isSmallScreen ? 'small' : 'medium'}
-          sx={{
-            '& .MuiChip-icon': {
-              fontSize: isSmallScreen ? '1rem' : '1.25rem',
-            },
-            '& .MuiChip-label': {
-              fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
-            },
-          }}
-        />
-      ))}
+        {activeFilters.map(filter => (
+          <Chip
+            key={filter.key}
+            icon={filter.icon}
+            label={`${filter.label}: ${filter.value}`}
+            size="small"
+            onDelete={() => handleDelete(filter.key)}
+            deleteIcon={<CloseIcon />}
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              color: 'white',
+              '& .MuiChip-icon': {
+                color: 'inherit',
+              },
+              '& .MuiChip-deleteIcon': {
+                color: 'inherit',
+                '&:hover': {
+                  color: 'rgba(255, 0, 0, 0.8)',
+                },
+              },
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.25)',
+              },
+            }}
+          />
+        ))}
+      </Stack>
     </Box>
   );
 };
@@ -98,6 +121,7 @@ FilterChips.propTypes = {
     climate: PropTypes.string,
     model_series: PropTypes.string,
   }).isRequired,
+  onResetSelection: PropTypes.func.isRequired,
 };
 
 export default FilterChips; 

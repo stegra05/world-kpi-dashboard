@@ -213,14 +213,6 @@ const MainContent = ({
         {renderInfoCards()}
       </Grid>
 
-      {/* Filter Chips */}
-      <Box sx={{ mb: 2 }}>
-        <FilterChips 
-          selectedFilters={selectedFilters} 
-          onResetSelection={onResetSelection}
-        />
-      </Box>
-
       {/* Map and Table Section */}
       <Grid container spacing={2}>
         {/* Map takes full width */}
