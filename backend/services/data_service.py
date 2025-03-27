@@ -36,7 +36,13 @@ class DataService:
                 
             # Validate and clean data types with specific error handling
             try:
-                self.df['iso_a3'] = self.df['iso_a3'].astype(str).str[:3]
+                # Handle empty iso_a3 values by generating a placeholder code
+                self.df['iso_a3'] = self.df['iso_a3'].fillna('').astype(str)
+                # Generate placeholder codes for empty iso_a3 values
+                self.df.loc[self.df['iso_a3'] == '', 'iso_a3'] = self.df.loc[self.df['iso_a3'] == '', 'country'].str[:3].str.upper()
+                # Ensure all iso_a3 values are exactly 3 characters
+                self.df['iso_a3'] = self.df['iso_a3'].str[:3].str.upper()
+                
                 self.df['val'] = pd.to_numeric(self.df['val'], errors='coerce')
                 self.df['cnt_vhcl'] = pd.to_numeric(self.df['cnt_vhcl'], errors='coerce').fillna(0).astype(int)
                 self.df['continent'] = self.df['continent'].fillna('').astype(str)

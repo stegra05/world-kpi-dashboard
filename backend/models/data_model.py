@@ -11,7 +11,7 @@ class Continent(str, Enum):
     OCEANIA = "Oceania"
 
 class KPIData(BaseModel):
-    iso_a3: str = Field(..., min_length=1, max_length=3)
+    iso_a3: str = Field(..., min_length=3, max_length=3)
     country: str
     battAlias: str
     var: str
