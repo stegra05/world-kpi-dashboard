@@ -1,127 +1,118 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { DataGrid } from '@mui/x-data-grid';
-import { useTheme, CircularProgress, Alert, Box, Typography, Paper, Backdrop } from '@mui/material';
+import { useTheme, CircularProgress, Alert, Box, Typography, Tooltip } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
-const DataTable = ({ filteredData, isLoading, error }) => {
+const DataTable = ({ 
+  data = [], 
+  isLoading = false, 
+  selectedCountryIso = null 
+}) => {
   const theme = useTheme();
 
   // Define columns configuration
   const columns = useMemo(() => [
-    {
-      field: 'country',
-      headerName: 'Country',
-      width: 150,
-      flex: 1,
-      sortable: true,
-      renderCell: (params) => params.value || 'N/A',
+    { 
+      field: 'country', 
+      headerName: 'Country', 
+      flex: 1.2,
+      minWidth: 150,
+      renderCell: (params) => (
+        <Tooltip title={params.value}>
+          <span>{params.value}</span>
+        </Tooltip>
+      )
     },
-    {
-      field: 'battAlias',
-      headerName: 'Battery Alias',
-      width: 150,
+    { 
+      field: 'battAlias', 
+      headerName: 'Battery Type', 
       flex: 1,
-      sortable: true,
-      renderCell: (params) => params.value || 'N/A',
+      minWidth: 130,
+      renderCell: (params) => (
+        <Tooltip title={params.value}>
+          <span>{params.value}</span>
+        </Tooltip>
+      )
     },
-    {
-      field: 'var',
-      headerName: 'Variable',
-      width: 150,
-      flex: 1,
-      sortable: true,
-      renderCell: (params) => params.value || 'N/A',
+    { 
+      field: 'var', 
+      headerName: 'Variable', 
+      flex: 0.8,
+      minWidth: 120 
     },
-    {
-      field: 'val',
-      headerName: 'Value',
-      width: 120,
-      flex: 1,
+    { 
+      field: 'val', 
+      headerName: 'Value', 
+      flex: 0.8,
+      minWidth: 100,
       type: 'number',
-      sortable: true,
       valueFormatter: (params) => {
-        if (params.value == null) return 'N/A';
-        return params.value.toLocaleString();
-      },
+        const value = Number(params.value);
+        return isNaN(value) ? params.value : value.toFixed(2);
+      }
     },
-    {
-      field: 'cnt_vhcl',
-      headerName: 'Vehicle Count',
-      width: 150,
+    { 
+      field: 'cnt_vhcl', 
+      headerName: 'Vehicles', 
       flex: 1,
+      minWidth: 120,
       type: 'number',
-      sortable: true,
       valueFormatter: (params) => {
-        if (params.value == null) return 'N/A';
-        return params.value.toLocaleString();
-      },
+        const value = Number(params.value);
+        return isNaN(value) ? params.value : value.toLocaleString();
+      }
     },
+    { 
+      field: 'continent', 
+      headerName: 'Continent', 
+      flex: 1,
+      minWidth: 130,
+      renderCell: (params) => (
+        <Tooltip title={params.value}>
+          <span>{params.value}</span>
+        </Tooltip>
+      )
+    },
+    { 
+      field: 'climate', 
+      headerName: 'Climate', 
+      flex: 1,
+      minWidth: 120,
+      renderCell: (params) => (
+        <Tooltip title={params.value}>
+          <span>{params.value}</span>
+        </Tooltip>
+      )
+    }
   ], []);
 
   // Add unique IDs to rows and validate data
   const rows = useMemo(() => {
-    if (!filteredData || !Array.isArray(filteredData)) return [];
-    
-    return filteredData.map((row, index) => ({
-      id: `${row.country || 'unknown'}-${row.battAlias || 'unknown'}-${row.var || 'unknown'}-${index}`,
-      ...row,
-      // Ensure all required fields have values
-      country: row.country || 'N/A',
-      battAlias: row.battAlias || 'N/A',
-      var: row.var || 'N/A',
-      val: row.val ?? null,
-      cnt_vhcl: row.cnt_vhcl ?? null,
-    }));
-  }, [filteredData]);
+    if (!data || data.length === 0) return [];
 
-  // Render error state
-  if (error) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Error loading data: {error.message}
-        </Alert>
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            textAlign: 'center',
-            backgroundColor: theme.palette.background.default
-          }}
-        >
-          <ErrorOutlineIcon sx={{ fontSize: 48, color: theme.palette.text.secondary, mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            Unable to Load Data
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Please try refreshing the page or contact support if the problem persists.
-          </Typography>
-        </Paper>
-      </Box>
-    );
-  }
+    return data
+      .filter(item => !selectedCountryIso || item.iso_a3 === selectedCountryIso)
+      .map((item, index) => ({
+        id: `${item.iso_a3}-${item.battAlias}-${item.var}-${index}`,
+        ...item
+      }))
+      .filter(row => {
+        // Validate that all required fields have values
+        return row.country && row.battAlias && row.var && 
+               (row.val !== undefined && row.val !== null) && 
+               (row.cnt_vhcl !== undefined && row.cnt_vhcl !== null);
+      });
+  }, [data, selectedCountryIso]);
 
   // Render empty state
-  if (!isLoading && (!filteredData || filteredData.length === 0)) {
+  if (!isLoading && (!data || data.length === 0)) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            textAlign: 'center',
-            backgroundColor: theme.palette.background.default
-          }}
-        >
-          <ErrorOutlineIcon sx={{ fontSize: 48, color: theme.palette.text.secondary, mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No Data Available
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Try adjusting your filters to see data in the table.
-          </Typography>
-        </Paper>
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <ErrorOutlineIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+        <Typography variant="body1" color="text.secondary">
+          No data available
+        </Typography>
       </Box>
     );
   }
@@ -129,56 +120,62 @@ const DataTable = ({ filteredData, isLoading, error }) => {
   return (
     <Box sx={{ 
       position: 'relative',
-      height: 400, 
+      height: 600,
       width: '100%',
-      backgroundColor: theme.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
+      bgcolor: 'background.paper',
+      borderRadius: 1,
       overflow: 'hidden',
+      boxShadow: 1
     }}>
-      <Backdrop
-        sx={{
-          color: theme.palette.primary.main,
+      {isLoading ? (
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          zIndex: theme.zIndex.drawer + 1,
-        }}
-        open={isLoading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
+          zIndex: 1,
+        }}>
+          <CircularProgress />
+        </Box>
+      ) : null}
       <DataGrid
         rows={rows}
         columns={columns}
         pageSize={10}
         rowsPerPageOptions={[10, 25, 50]}
         disableSelectionOnClick
-        autoHeight
-        loading={isLoading}
-        disableColumnMenu={false}
-        resizable
-        error={error}
-        onError={(error) => {
-          console.error('DataGrid error:', error);
-        }}
+        density="comfortable"
         sx={{
           border: 'none',
           '& .MuiDataGrid-cell': {
-            borderBottom: `1px solid ${theme.palette.divider}`,
+            borderColor: theme.palette.divider,
+            py: 1,
           },
           '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: theme.palette.background.default,
+            bgcolor: theme.palette.background.default,
             borderBottom: `1px solid ${theme.palette.divider}`,
-          },
-          '& .MuiDataGrid-row:hover': {
-            backgroundColor: theme.palette.action.hover,
-          },
-          '& .MuiDataGrid-columnHeader': {
-            backgroundColor: theme.palette.background.default,
-            '&:hover': {
-              backgroundColor: theme.palette.action.hover,
+            '& .MuiDataGrid-columnHeader': {
+              py: 1.5,
+              '&:focus': {
+                outline: 'none',
+              },
             },
           },
-          '& .MuiDataGrid-sortIcon': {
-            color: theme.palette.primary.main,
+          '& .MuiDataGrid-row': {
+            '&:hover': {
+              bgcolor: theme.palette.action.hover,
+            },
+            '&.Mui-selected': {
+              bgcolor: theme.palette.action.selected,
+              '&:hover': {
+                bgcolor: theme.palette.action.selected,
+              },
+            },
           },
         }}
       />
@@ -187,23 +184,18 @@ const DataTable = ({ filteredData, isLoading, error }) => {
 };
 
 DataTable.propTypes = {
-  filteredData: PropTypes.arrayOf(PropTypes.shape({
+  data: PropTypes.arrayOf(PropTypes.shape({
     country: PropTypes.string,
     battAlias: PropTypes.string,
     var: PropTypes.string,
-    val: PropTypes.number,
-    cnt_vhcl: PropTypes.number,
+    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    continent: PropTypes.string,
+    climate: PropTypes.string,
+    iso_a3: PropTypes.string,
   })),
   isLoading: PropTypes.bool,
-  error: PropTypes.shape({
-    message: PropTypes.string,
-  }),
-};
-
-DataTable.defaultProps = {
-  filteredData: [],
-  isLoading: false,
-  error: null,
+  selectedCountryIso: PropTypes.string,
 };
 
 export default DataTable; 

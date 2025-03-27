@@ -1,10 +1,15 @@
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Plot from 'react-plotly.js';
-import { Box, useTheme, useMediaQuery, Typography, Paper, CircularProgress, Backdrop } from '@mui/material';
+import { Box, useTheme, useMediaQuery, Typography, Paper, CircularProgress, Alert } from '@mui/material';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
-const WorldMap = ({ data, selectedMetric, selectedBattAlias, onCountryClick }) => {
+const WorldMap = ({ 
+  data = [], 
+  selectedVar = '', 
+  selectedCountryIso = null, 
+  onCountryClick = () => {} 
+}) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'));
@@ -16,16 +21,14 @@ const WorldMap = ({ data, selectedMetric, selectedBattAlias, onCountryClick }) =
 
   // Memoize the click handler
   const handleClick = useCallback((event) => {
-    if (event.points && event.points[0]) {
-      const location = event.points[0].location;
-      onCountryClick(location);
-    }
+    const points = event.points[0];
+    const countryIso = points.location;
+    onCountryClick(countryIso);
   }, [onCountryClick]);
 
   // Handle map initialization
   const handleMapInitialized = useCallback(() => {
     setIsMapLoading(false);
-    // Trigger a resize event to ensure proper rendering
     window.dispatchEvent(new Event('resize'));
   }, []);
 
@@ -36,301 +39,169 @@ const WorldMap = ({ data, selectedMetric, selectedBattAlias, onCountryClick }) =
     setIsMapLoading(false);
   }, []);
 
-  // Prepare data for the choropleth map with performance optimizations
+  // Prepare map data
   const mapData = useMemo(() => {
-    if (!data || !Array.isArray(data) || data.length === 0) return null;
-    if (!selectedMetric || !selectedBattAlias) return null;
+    if (!data || data.length === 0) return null;
 
     try {
-      // Filter data for selected metric and battery alias
-      const filteredData = data.filter(
-        item => item.var === selectedMetric && item.battAlias === selectedBattAlias
-      );
-
-      if (filteredData.length === 0) return null;
-
-      // Group by country and calculate average value
-      const countryData = filteredData.reduce((acc, item) => {
-        if (!item.iso_a3 || !item.country) return acc;
-        
+      // Group data by country and calculate average values
+      const groupedData = data.reduce((acc, item) => {
         if (!acc[item.iso_a3]) {
           acc[item.iso_a3] = {
-            value: 0,
-            count: 0,
+            sum: Number(item.val) || 0,
+            count: 1,
             country: item.country
           };
+        } else {
+          acc[item.iso_a3].sum += Number(item.val) || 0;
+          acc[item.iso_a3].count += 1;
         }
-        acc[item.iso_a3].value += item.val;
-        acc[item.iso_a3].count += 1;
         return acc;
       }, {});
 
-      if (Object.keys(countryData).length === 0) return null;
-
-      // Calculate averages and prepare arrays for the map
+      // Calculate averages and prepare data for the map
       const locations = [];
       const values = [];
       const text = [];
-      const hoverText = [];
+      const customdata = [];
 
-      Object.entries(countryData).forEach(([iso, data]) => {
+      Object.entries(groupedData).forEach(([iso, data]) => {
         locations.push(iso);
-        const avgValue = data.value / data.count;
+        const avgValue = data.sum / data.count;
         values.push(avgValue);
-        text.push(avgValue.toLocaleString(undefined, { maximumFractionDigits: 2 }));
-        hoverText.push(
-          `<b>${data.country}</b><br>` +
-          `${selectedMetric}: ${avgValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}<br>` +
-          `Battery: ${selectedBattAlias}<br>` +
-          `Data points: ${data.count}`
-        );
+        text.push(`${data.country}<br>Average ${selectedVar}: ${avgValue.toFixed(2)}`);
+        customdata.push(data.country);
       });
 
-      return [{
+      return {
         type: 'choropleth',
-        locationmode: 'ISO-3',
-        locations: locations,
+        locations,
         z: values,
-        text: text,
-        hovertext: hoverText,
-        hovertemplate: '%{hovertext}<extra></extra>',
-        colorscale: [
-          [0, '#313695'],
-          [0.2, '#4575b4'],
-          [0.4, '#74add1'],
-          [0.6, '#abd9e9'],
-          [0.8, '#fdae61'],
-          [1, '#d73027']
-        ],
+        text,
+        customdata,
+        hoverinfo: 'text',
+        colorscale: 'Blues',
         colorbar: {
-          title: {
-            text: selectedMetric,
-            font: {
-              color: theme.palette.text.primary,
-              size: isSmallScreen ? 12 : 14
-            }
-          },
-          tickfont: {
-            color: theme.palette.text.secondary,
-            size: isSmallScreen ? 10 : 12
-          },
-          thickness: isSmallScreen ? 10 : 15,
-          len: isSmallScreen ? 0.4 : 0.5,
+          title: selectedVar,
+          thickness: 20,
+          len: 0.5,
           y: 0.5,
-          yanchor: 'middle',
-          outlinewidth: 0,
-          outlinecolor: theme.palette.divider,
-          bgcolor: theme.palette.background.paper,
-          borderwidth: 0,
-          x: 1.02,
-          xanchor: 'left'
+          tickformat: '.1f'
         },
-        marker: {
-          line: {
-            color: theme.palette.divider,
-            width: isSmallScreen ? 0.3 : 0.5
+        zmin: Math.min(...values),
+        zmax: Math.max(...values),
+        showscale: true,
+        selected: {
+          marker: {
+            opacity: 1,
+            line: {
+              color: theme.palette.primary.main,
+              width: 2
+            }
           }
         },
-        hoverlabel: {
-          bgcolor: theme.palette.background.paper,
-          font: { 
-            color: theme.palette.text.primary,
-            size: isSmallScreen ? 12 : 14
-          },
-          bordercolor: theme.palette.divider,
-          borderwidth: 1
+        unselected: {
+          marker: { opacity: 0.5 }
         }
-      }];
-    } catch (error) {
-      console.error('Error preparing map data:', error);
-      setMapError('Error preparing map data');
+      };
+    } catch (err) {
+      console.error('Error processing map data:', err);
+      setMapError('Error processing map data');
       return null;
     }
-  }, [data, selectedMetric, selectedBattAlias, theme, isSmallScreen]);
+  }, [data, selectedVar, theme.palette.primary.main]);
 
+  // Layout configuration
   const layout = useMemo(() => ({
     geo: {
       showframe: false,
       showcoastlines: true,
-      coastlinecolor: theme.palette.divider,
-      projection: {
-        type: 'natural earth',
-        scale: isSmallScreen ? 1.1 : 1.2
+      projection: { 
+        type: 'equirectangular',
+        scale: 1.1
       },
       bgcolor: 'transparent',
-      subunitwidth: isSmallScreen ? 0.3 : 0.5,
-      subunitcolor: theme.palette.divider,
-      countrywidth: isSmallScreen ? 0.3 : 0.5,
+      showcountries: true,
       countrycolor: theme.palette.divider,
-      lakecolor: theme.palette.background.paper,
-      landcolor: theme.palette.background.paper
+      coastlinecolor: theme.palette.divider,
+      showland: true,
+      landcolor: theme.palette.background.paper,
+      showlakes: true,
+      lakecolor: theme.palette.background.default
     },
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
-    margin: { 
-      t: 0, 
-      b: 0, 
-      l: 0, 
-      r: isSmallScreen ? 20 : 30 
-    },
+    margin: { t: 0, l: 0, r: 0, b: 0 },
+    height: isSmallScreen ? 300 : 500,
+    autosize: true,
+    dragmode: false,
     showlegend: false,
-    height: mapHeight,
-    clickmode: 'event+select',
-    hovermode: 'closest',
-    hoverdistance: isSmallScreen ? 50 : 100,
-    transition: {
-      duration: 500,
-      easing: 'cubic-in-out'
-    }
-  }), [theme, isSmallScreen, mapHeight]);
+  }), [isSmallScreen, theme.palette]);
 
+  // Config for the plot
   const config = useMemo(() => ({
-    responsive: true,
     displayModeBar: false,
+    responsive: true,
     scrollZoom: false,
-    doubleClick: 'reset+autosize',
-    toImageButtonOptions: {
-      format: 'png',
-      filename: 'world_kpi_map',
-      height: mapHeight,
-      width: null,
-      scale: 2
-    }
-  }), [mapHeight]);
+  }), []);
 
-  // Render error state
+  useEffect(() => {
+    setIsMapLoading(false);
+  }, [data]);
+
   if (mapError) {
     return (
-      <Box sx={{ 
-        width: '100%', 
-        height: mapHeight,
-        backgroundColor: theme.palette.background.paper,
-        borderRadius: 2,
-        boxShadow: theme.shadows[2],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 3
-      }}>
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            textAlign: 'center',
-            backgroundColor: theme.palette.background.default
-          }}
-        >
-          <ErrorOutlineIcon sx={{ fontSize: 48, color: theme.palette.text.secondary, mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            Map Error
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {mapError}
-          </Typography>
-        </Paper>
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <ErrorOutlineIcon sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {mapError}
+        </Alert>
       </Box>
     );
   }
 
-  // Render placeholder if no data is available
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    return (
-      <Box sx={{ 
-        width: '100%', 
-        height: mapHeight,
-        backgroundColor: theme.palette.background.paper,
-        borderRadius: 2,
-        boxShadow: theme.shadows[2],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 3
-      }}>
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            textAlign: 'center',
-            backgroundColor: theme.palette.background.default
-          }}
-        >
-          <ErrorOutlineIcon sx={{ fontSize: 48, color: theme.palette.text.secondary, mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No Data Available
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Please select a metric and battery alias to view the world map.
-          </Typography>
-        </Paper>
-      </Box>
-    );
-  }
-
-  // Render placeholder if no data for selected filters
   if (!mapData) {
     return (
-      <Box sx={{ 
-        width: '100%', 
-        height: mapHeight,
-        backgroundColor: theme.palette.background.paper,
-        borderRadius: 2,
-        boxShadow: theme.shadows[2],
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        p: 3
-      }}>
-        <Paper 
-          elevation={0} 
-          sx={{ 
-            p: 3, 
-            textAlign: 'center',
-            backgroundColor: theme.palette.background.default
-          }}
-        >
-          <ErrorOutlineIcon sx={{ fontSize: 48, color: theme.palette.text.secondary, mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No Data for Selected Filters
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Try adjusting your filters to see data on the map.
-          </Typography>
-        </Paper>
+      <Box sx={{ p: 2, textAlign: 'center' }}>
+        <Typography variant="body1" color="text.secondary">
+          {selectedVar ? 'No data available for the selected filters' : 'Please select a variable to display'}
+        </Typography>
       </Box>
     );
   }
 
   return (
     <Box sx={{ 
-      width: '100%', 
-      height: mapHeight,
-      backgroundColor: theme.palette.background.paper,
-      borderRadius: 2,
-      boxShadow: theme.shadows[2],
+      width: '100%',
+      height: isSmallScreen ? 300 : 500,
+      bgcolor: 'background.paper',
+      borderRadius: 1,
       overflow: 'hidden',
-      position: 'relative',
-      transition: 'all 0.3s ease-in-out'
+      boxShadow: 1,
+      p: 2
     }}>
-      <Backdrop
-        sx={{
-          color: theme.palette.primary.main,
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          zIndex: theme.zIndex.drawer + 1,
-        }}
-        open={isMapLoading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-      <Plot
-        data={mapData}
-        layout={layout}
-        config={config}
-        onClick={handleClick}
-        useResizeHandler={true}
-        style={{ width: '100%', height: '100%' }}
-        onInitialized={handleMapInitialized}
-        onError={handleMapError}
-      />
+      {mapError ? (
+        <Alert severity="error" sx={{ m: 2 }}>
+          {mapError}
+        </Alert>
+      ) : isMapLoading ? (
+        <Box sx={{ 
+          height: '100%', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Plot
+          data={[mapData]}
+          layout={layout}
+          config={config}
+          onClick={handleClick}
+          style={{ width: '100%', height: '100%' }}
+        />
+      )}
     </Box>
   );
 };
@@ -339,19 +210,12 @@ WorldMap.propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
     iso_a3: PropTypes.string,
     country: PropTypes.string,
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    val: PropTypes.number,
+    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   })),
-  selectedMetric: PropTypes.string,
-  selectedBattAlias: PropTypes.string,
+  selectedVar: PropTypes.string,
+  selectedCountryIso: PropTypes.string,
   onCountryClick: PropTypes.func.isRequired,
-};
-
-WorldMap.defaultProps = {
-  data: [],
-  selectedMetric: '',
-  selectedBattAlias: '',
 };
 
 export default WorldMap; 

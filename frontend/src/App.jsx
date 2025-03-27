@@ -151,6 +151,7 @@ function App() {
 
   // Callback to handle filter changes
   const handleFiltersChange = useCallback((newFilters) => {
+    console.log('Filter changed:', newFilters);  // Debug log
     setSelectedFilters(prev => ({
       ...prev,
       ...newFilters
@@ -163,7 +164,7 @@ function App() {
     
     setSelectedCountryIso(isoCode);
     // Find the country name from kpiData
-    const countryData = kpiData.find(item => item.iso_a3 === isoCode);
+    const countryData = kpiData?.find(item => item.iso_a3 === isoCode);
     if (countryData) {
       setSelectedFilters(prev => ({
         ...prev,
@@ -182,34 +183,25 @@ function App() {
 
   // Effect to filter data based on selected filters
   useEffect(() => {
-    if (!kpiData) return;
+    if (!kpiData || !Array.isArray(kpiData)) {
+      console.log('No data available for filtering');  // Debug log
+      setFilteredData([]);
+      return;
+    }
 
+    console.log('Filtering data with:', selectedFilters);  // Debug log
     let filtered = [...kpiData];
 
     // Apply filters
-    if (selectedFilters.battAlias) {
-      filtered = filtered.filter(item => item.battAlias === selectedFilters.battAlias);
-    }
-    if (selectedFilters.var) {
-      filtered = filtered.filter(item => item.var === selectedFilters.var);
-    }
-    if (selectedFilters.continent) {
-      filtered = filtered.filter(item => item.continent === selectedFilters.continent);
-    }
-    if (selectedFilters.country) {
-      filtered = filtered.filter(item => item.country === selectedFilters.country);
-    }
-    if (selectedFilters.climate) {
-      filtered = filtered.filter(item => item.climate === selectedFilters.climate);
-    }
+    Object.entries(selectedFilters).forEach(([key, value]) => {
+      if (value && filtered.length > 0) {
+        filtered = filtered.filter(item => item[key] === value);
+      }
+    });
 
-    // If no data after filtering, clear country selection
-    if (filtered.length === 0 && selectedCountryIso) {
-      setSelectedCountryIso(null);
-    }
-
+    console.log('Filtered data length:', filtered.length);  // Debug log
     setFilteredData(filtered);
-  }, [kpiData, selectedFilters, selectedCountryIso]);
+  }, [kpiData, selectedFilters]);
 
   if (isLoading) {
     return <LoadingState onRetry={refetch} />;
@@ -226,25 +218,24 @@ function App() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             World KPI Dashboard
           </Typography>
-          <IconButton color="inherit" onClick={toggleDarkMode}>
+          <IconButton onClick={toggleDarkMode} color="inherit">
             {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
         </Toolbar>
       </AppBar>
-      
+
       <Sidebar
-        width={drawerWidth}
-        variant="permanent"
-        onThemeToggle={toggleDarkMode}
-        data={kpiData}
+        kpiData={kpiData}
         selectedFilters={selectedFilters}
         onFiltersChange={handleFiltersChange}
         isLoading={isLoading}
       />
-      
+
       <Box component="main" sx={styles.main}>
+        <Toolbar /> {/* Spacer for AppBar */}
         <MainContent
-          data={filteredData}
+          kpiData={kpiData}
+          filteredData={filteredData}
           selectedFilters={selectedFilters}
           selectedCountryIso={selectedCountryIso}
           onCountryClick={handleCountryClick}

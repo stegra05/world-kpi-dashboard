@@ -9,67 +9,85 @@ import {
   Toolbar,
   Divider,
   Box,
-  IconButton,
-  useTheme,
+  Typography,
 } from '@mui/material';
 import {
-  Brightness4 as DarkModeIcon,
-  Brightness7 as LightModeIcon,
   Dashboard as DashboardIcon,
+  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import FilterPanel from './FilterPanel';
 
-const Sidebar = ({ width, onThemeToggle, variant, sx, data, selectedFilters, onFiltersChange, isLoading }) => {
-  const theme = useTheme();
+const drawerWidth = 240;
 
+const Sidebar = ({ 
+  kpiData = [], 
+  selectedFilters, 
+  onFiltersChange, 
+  isLoading = false 
+}) => {
   return (
     <Drawer
-      variant={variant}
+      variant="permanent"
       sx={{
-        ...sx,
+        width: drawerWidth,
+        flexShrink: 0,
         '& .MuiDrawer-paper': {
-          width: width,
+          width: drawerWidth,
           boxSizing: 'border-box',
+          backgroundColor: 'background.paper',
           borderRight: '1px solid',
           borderColor: 'divider',
         },
       }}
     >
-      <Toolbar />
-      <Divider />
-      <List>
-        <ListItem>
-          <ListItemIcon>
-            <DashboardIcon />
-          </ListItemIcon>
-          <ListItemText primary="Dashboard" />
-        </ListItem>
-      </List>
-      <Divider />
-      <Box sx={{ p: 2 }}>
+      <Toolbar /> {/* Spacer for AppBar */}
+      <Box sx={{ overflow: 'auto' }}>
+        <List>
+          <ListItem>
+            <ListItemIcon>
+              <DashboardIcon />
+            </ListItemIcon>
+            <ListItemText primary="Dashboard" />
+          </ListItem>
+          <Divider />
+          <ListItem>
+            <ListItemIcon>
+              <FilterIcon />
+            </ListItemIcon>
+            <ListItemText>
+              <Typography variant="subtitle2" color="text.secondary">
+                Filters
+              </Typography>
+            </ListItemText>
+          </ListItem>
+        </List>
         <FilterPanel
-          kpiData={data}
+          kpiData={kpiData}
           selectedFilters={selectedFilters}
           onFiltersChange={onFiltersChange}
           isLoading={isLoading}
         />
-      </Box>
-      <Box sx={{ mt: 'auto', p: 2 }}>
-        <IconButton onClick={onThemeToggle} color="inherit">
-          {theme.palette.mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-        </IconButton>
       </Box>
     </Drawer>
   );
 };
 
 Sidebar.propTypes = {
-  width: PropTypes.number.isRequired,
-  onThemeToggle: PropTypes.func.isRequired,
-  variant: PropTypes.string.isRequired,
-  sx: PropTypes.object,
-  data: PropTypes.array.isRequired,
-  selectedFilters: PropTypes.object.isRequired,
+  kpiData: PropTypes.arrayOf(PropTypes.shape({
+    battAlias: PropTypes.string,
+    var: PropTypes.string,
+    continent: PropTypes.string,
+    climate: PropTypes.string,
+    country: PropTypes.string,
+    iso_a3: PropTypes.string,
+  })),
+  selectedFilters: PropTypes.shape({
+    battAlias: PropTypes.string,
+    var: PropTypes.string,
+    continent: PropTypes.string,
+    climate: PropTypes.string,
+    country: PropTypes.string,
+  }).isRequired,
   onFiltersChange: PropTypes.func.isRequired,
   isLoading: PropTypes.bool,
 };

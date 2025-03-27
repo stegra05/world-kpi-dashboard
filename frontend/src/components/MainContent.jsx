@@ -47,6 +47,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
+    minHeight: '500px',
     transition: 'all 0.3s ease-in-out',
   },
   tablePaper: {
@@ -70,14 +71,20 @@ const InfoCardSkeleton = () => (
   </Box>
 );
 
-const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick }) => {
+const MainContent = ({ 
+  kpiData = [], 
+  filteredData = [], 
+  selectedFilters, 
+  selectedCountryIso = null, 
+  onCountryClick 
+}) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const isLoading = !data || data.length === 0;
+  const isLoading = !kpiData || kpiData.length === 0;
 
-  // Calculate statistics
+  // Calculate statistics based on filtered data
   const stats = useMemo(() => {
-    if (!data || data.length === 0) {
+    if (!filteredData || filteredData.length === 0) {
       return {
         uniqueCountries: 0,
         totalVehicles: 0,
@@ -87,18 +94,18 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
       };
     }
 
-    const uniqueCountries = new Set(data.map(item => item.country)).size;
-    const totalVehicles = data.reduce((sum, item) => sum + (item.cnt_vhcl || 0), 0);
-    const uniqueBatteries = new Set(data.map(item => item.battAlias)).size;
+    const uniqueCountries = new Set(filteredData.map(item => item.country)).size;
+    const totalVehicles = filteredData.reduce((sum, item) => sum + (Number(item.cnt_vhcl) || 0), 0);
+    const uniqueBatteries = new Set(filteredData.map(item => item.battAlias)).size;
 
     // Get selected country data and calculate its stats
     const selectedCountryData = selectedCountryIso
-      ? data.filter(item => item.iso_a3 === selectedCountryIso)
+      ? filteredData.filter(item => item.iso_a3 === selectedCountryIso)
       : null;
 
-    const selectedCountryStats = selectedCountryData ? {
+    const selectedCountryStats = selectedCountryData?.length > 0 ? {
       country: selectedCountryData[0].country,
-      totalVehicles: selectedCountryData.reduce((sum, item) => sum + (item.cnt_vhcl || 0), 0),
+      totalVehicles: selectedCountryData.reduce((sum, item) => sum + (Number(item.cnt_vhcl) || 0), 0),
       uniqueBatteries: new Set(selectedCountryData.map(item => item.battAlias)).size,
       dataPoints: selectedCountryData.length,
     } : null;
@@ -110,7 +117,7 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
       selectedCountry: selectedCountryStats?.country || 'No country selected',
       selectedCountryStats,
     };
-  }, [data, selectedCountryIso]);
+  }, [filteredData, selectedCountryIso]);
 
   const renderInfoCards = () => {
     if (isLoading) {
@@ -150,7 +157,7 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
               subtitle={
                 stats.selectedCountryStats
                   ? `${stats.selectedCountryStats.totalVehicles.toLocaleString()} vehicles, ${stats.selectedCountryStats.uniqueBatteries} battery types`
-                  : "Currently selected country"
+                  : "Click a country on the map"
               }
               icon={<LocationIcon />}
             />
@@ -161,7 +168,7 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
             <InfoCard
               title="Countries"
               value={stats.uniqueCountries}
-              subtitle="Number of countries in dataset"
+              subtitle="Number of countries in filtered data"
               icon={<PublicIcon />}
             />
           </Paper>
@@ -171,7 +178,7 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
             <InfoCard
               title="Total Vehicles"
               value={stats.totalVehicles.toLocaleString()}
-              subtitle="Sum of all vehicles"
+              subtitle="Sum of vehicles in filtered data"
               icon={<CarIcon />}
             />
           </Paper>
@@ -181,7 +188,7 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
             <InfoCard
               title="Battery Types"
               value={stats.uniqueBatteries}
-              subtitle="Unique battery configurations"
+              subtitle="Unique battery types in filtered data"
               icon={<BatteryIcon />}
             />
           </Paper>
@@ -199,32 +206,33 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
         {renderInfoCards()}
       </Grid>
 
-      {/* World Map */}
-      <Grid container spacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
-        <Grid item xs={12}>
+      {/* Map and Table */}
+      <Grid container spacing={{ xs: 1, sm: 2, md: 3 }}>
+        {/* World Map */}
+        <Grid item xs={12} md={8}>
           <Paper elevation={2} sx={styles.mapPaper}>
             {isLoading ? (
-              <Skeleton variant="rectangular" sx={styles.skeleton} />
+              <Box sx={styles.loadingOverlay}>
+                <CircularProgress />
+              </Box>
             ) : (
               <WorldMap
-                data={data}
-                selectedMetric={selectedFilters.var}
-                selectedBattAlias={selectedFilters.battAlias}
+                data={filteredData}
+                selectedCountryIso={selectedCountryIso}
                 onCountryClick={onCountryClick}
+                selectedVar={selectedFilters.var}
               />
             )}
           </Paper>
         </Grid>
-      </Grid>
 
-      {/* Data Table */}
-      <Grid container spacing={{ xs: 1, sm: 2, md: 3 }}>
-        <Grid item xs={12}>
+        {/* Data Table */}
+        <Grid item xs={12} md={4}>
           <Paper elevation={2} sx={styles.tablePaper}>
             <DataTable
-              filteredData={data}
+              data={filteredData}
               isLoading={isLoading}
-              error={null}
+              selectedCountryIso={selectedCountryIso}
             />
           </Paper>
         </Grid>
@@ -234,18 +242,31 @@ const MainContent = ({ data, selectedFilters, selectedCountryIso, onCountryClick
 };
 
 MainContent.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.shape({
-    iso_a3: PropTypes.string,
-    country: PropTypes.string,
+  kpiData: PropTypes.arrayOf(PropTypes.shape({
     battAlias: PropTypes.string,
     var: PropTypes.string,
-    val: PropTypes.number,
-    cnt_vhcl: PropTypes.number,
-  })).isRequired,
+    continent: PropTypes.string,
+    climate: PropTypes.string,
+    country: PropTypes.string,
+    iso_a3: PropTypes.string,
+    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  })),
+  filteredData: PropTypes.arrayOf(PropTypes.shape({
+    battAlias: PropTypes.string,
+    var: PropTypes.string,
+    continent: PropTypes.string,
+    climate: PropTypes.string,
+    country: PropTypes.string,
+    iso_a3: PropTypes.string,
+    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  })),
   selectedFilters: PropTypes.shape({
     battAlias: PropTypes.string,
     var: PropTypes.string,
     continent: PropTypes.string,
+    climate: PropTypes.string,
     country: PropTypes.string,
   }).isRequired,
   selectedCountryIso: PropTypes.string,

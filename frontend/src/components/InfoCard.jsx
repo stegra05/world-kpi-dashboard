@@ -6,10 +6,20 @@ import {
   Typography,
   Box,
   useTheme,
+  useMediaQuery,
 } from '@mui/material';
+
+// Helper function to format values
+const formatValue = (value) => {
+  if (typeof value === 'number') {
+    return value.toLocaleString('de-DE');
+  }
+  return value;
+};
 
 const InfoCard = ({ title, value, subtitle, icon }) => {
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   return (
     <Card
@@ -17,17 +27,20 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: theme.palette.background.paper,
-        borderRadius: 2,
-        boxShadow: theme.shadows[2],
-        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        backgroundColor: 'background.paper',
+        borderRadius: 1,
+        transition: 'all 0.3s ease-in-out',
         '&:hover': {
           transform: 'translateY(-4px)',
-          boxShadow: theme.shadows[4],
+          boxShadow: 4,
         },
       }}
     >
-      <CardContent sx={{ flexGrow: 1, p: 2 }}>
+      <CardContent sx={{ 
+        flexGrow: 1, 
+        p: isSmallScreen ? 1.5 : 2,
+        '&:last-child': { pb: isSmallScreen ? 1.5 : 2 },
+      }}>
         <Box
           sx={{
             display: 'flex',
@@ -36,49 +49,58 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
             mb: 1,
           }}
         >
+          <Typography
+            variant="subtitle2"
+            component="h2"
+            sx={{
+              color: 'text.secondary',
+              fontWeight: 500,
+              fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
+            }}
+          >
+            {title}
+          </Typography>
           {icon && (
             <Box
               sx={{
-                color: theme.palette.primary.main,
+                color: 'primary.main',
                 display: 'flex',
                 alignItems: 'center',
+                '& > svg': {
+                  fontSize: isSmallScreen ? '1.25rem' : '1.5rem',
+                },
               }}
             >
               {icon}
             </Box>
           )}
-          <Typography
-            variant="h6"
-            component="h2"
-            sx={{
-              color: theme.palette.text.secondary,
-              fontWeight: 500,
-              fontSize: '0.875rem',
-            }}
-          >
-            {title}
-          </Typography>
         </Box>
         <Typography
           variant="h4"
           component="div"
           sx={{
-            color: theme.palette.text.primary,
+            color: 'text.primary',
             fontWeight: 600,
-            fontSize: '1.5rem',
+            fontSize: isSmallScreen ? '1.25rem' : '1.5rem',
             lineHeight: 1.2,
+            mb: subtitle ? 0.5 : 0,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
         >
-          {value}
+          {formatValue(value)}
         </Typography>
         {subtitle && (
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{
-              fontSize: '0.875rem',
+              fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
               fontWeight: 400,
-              mt: 0.5,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {subtitle}
@@ -94,6 +116,11 @@ InfoCard.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   subtitle: PropTypes.string,
   icon: PropTypes.node,
+};
+
+InfoCard.defaultProps = {
+  subtitle: '',
+  icon: null,
 };
 
 export default InfoCard; 
