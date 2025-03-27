@@ -43,8 +43,8 @@ const styles = {
   },
   main: {
     flexGrow: 1,
-    width: { sm: `calc(100% - ${drawerWidth}px)` },
-    ml: { sm: `${drawerWidth}px` },
+    width: { sm: '100%' },
+    ml: { sm: 0 },
     p: 0,
   },
   loadingContainer: {
