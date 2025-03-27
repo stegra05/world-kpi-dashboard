@@ -7,6 +7,7 @@ import {
   Public as ContinentIcon,
   Thermostat as ClimateIcon,
   Category as ModelSeriesIcon,
+  LocationOn as CountryIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
 
@@ -41,6 +42,12 @@ const FilterChips = ({ selectedFilters, onResetSelection }) => {
       label: 'Model Series',
       icon: <ModelSeriesIcon />,
       value: selectedFilters.model_series,
+    },
+    {
+      key: 'country',
+      label: 'Country',
+      icon: <CountryIcon />,
+      value: selectedFilters.country,
     },
   ];
 
@@ -120,6 +127,7 @@ FilterChips.propTypes = {
     continent: PropTypes.string,
     climate: PropTypes.string,
     model_series: PropTypes.string,
+    country: PropTypes.string,
   }).isRequired,
   onResetSelection: PropTypes.func.isRequired,
 };

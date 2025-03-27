@@ -248,43 +248,25 @@ export const useKpiData = () => {
       let filteredResults = response.data.data;
       if (filters.country) {
         filteredResults = filteredResults.filter(item => item.country === filters.country);
-        console.log(`Applied client-side country filter for "${filters.country}", remaining items: ${filteredResults.length}`);
+        console.log(`Applied client-side country filter, remaining: ${filteredResults.length} items`);
       }
       
-      // Update filtered data state with the server-filtered results
       setFilteredData(filteredResults);
       setError(null);
     } catch (err) {
-      // Handle network errors with retry
+      // Handle network errors with retry logic
       if (retryCount < MAX_RETRIES && (!err.response || err.code === 'ECONNABORTED')) {
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         return fetchFilteredData(filters, retryCount + 1);
       }
       
-      console.error('Filter API error:', err);
-      
-      // If we get a 404, fall back to client-side filtering
-      if (err.response && err.response.status === 404) {
-        console.log('Filtered endpoint not found, falling back to client-side filtering');
-        const clientFiltered = kpiData.filter(item => 
-          item.var === filters.var && 
-          item.battAlias === filters.battAlias &&
-          (!filters.continent || item.continent === filters.continent) &&
-          (!filters.climate || item.climate === filters.climate) &&
-          (!filters.country || item.country === filters.country)
-        );
-        setFilteredData(clientFiltered);
-        setError(null);
-      } else {
-        const errorInfo = getErrorMessage(err);
-        const retryInfo = retryCount > 0 ? ` (after ${retryCount} retries)` : '';
-        setError({
-          ...errorInfo,
-          detail: `${errorInfo.detail}${retryInfo}`
-        });
-      }
+      console.error('Error fetching filtered data:', err);
+      setError(getErrorMessage(err));
     } finally {
-      setIsFiltering(false);
+      // Add a small delay to ensure loading state is visible (prevents flickering for fast responses)
+      setTimeout(() => {
+        setIsFiltering(false);
+      }, 500);
     }
   };
 

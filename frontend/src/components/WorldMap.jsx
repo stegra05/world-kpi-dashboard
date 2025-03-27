@@ -6,10 +6,10 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 const WorldMap = ({ 
   data = [], 
-  selectedVar = '', 
   selectedCountryIso = null, 
   onCountryClick = () => {},
-  onResetSelection = () => {}
+  onResetSelection = () => {},
+  isLoading = false
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -46,14 +46,26 @@ const WorldMap = ({
     setIsMapLoading(false);
   }, []);
 
+  // Reset loading state when external loading flag changes
+  useEffect(() => {
+    if (isLoading) {
+      setIsMapLoading(true);
+    }
+  }, [isLoading]);
+
   // Prepare map data
   const mapData = useMemo(() => {
     if (!data || data.length === 0) {
-      setMapError('No data available for the map');
+      if (!isLoading) {
+        setMapError('No data available for the map');
+      }
       return null;
     }
 
     try {
+      // Find the metric name from the first data item
+      const selectedVar = data[0]?.var || 'Value';
+      
       // Group data by country and calculate average values
       const groupedData = data.reduce((acc, item) => {
         if (!acc[item.iso_a3]) {
@@ -140,7 +152,7 @@ const WorldMap = ({
       setMapError('Error preparing map data');
       return null;
     }
-  }, [data, selectedVar, theme.palette.mode, selectedCountryIso, theme.palette.primary.main]);
+  }, [data, selectedCountryIso, theme.palette.mode, theme.palette.primary.main, isLoading]);
 
   // Map layout configuration
   const layout = useMemo(() => ({
@@ -199,50 +211,9 @@ const WorldMap = ({
     modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d', 'toggleSpikelines'],
   };
 
-  // Reset error state when data changes
-  useEffect(() => {
-    setMapError(null);
-    setIsMapLoading(true);
-  }, [data, selectedVar]);
-
-  // Handle map updates
-  useEffect(() => {
-    if (mapData) {
-      setIsMapLoading(false);
-    }
-  }, [mapData]);
-
-  if (mapError) {
-    return (
-      <Box sx={{ 
-        p: 2, 
-        textAlign: 'center',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <ErrorOutlineIcon sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
-        <Typography variant="body1" color="error" gutterBottom>
-          {mapError}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Please try selecting different filters or refreshing the page.
-        </Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ 
-      width: '100%', 
-      height: '100%',
-      position: 'relative',
-      borderRadius: 1,
-      overflow: 'hidden'
-    }}>
-      {isMapLoading && (
+    <Box sx={{ position: 'relative', height: mapHeight, width: '100%' }}>
+      {(isLoading || isMapLoading) && (
         <Box sx={{
           position: 'absolute',
           top: 0,
@@ -250,59 +221,61 @@ const WorldMap = ({
           right: 0,
           bottom: 0,
           display: 'flex',
-          justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.6)',
+          backdropFilter: 'blur(2px)',
           zIndex: 2,
         }}>
           <CircularProgress />
         </Box>
       )}
       
-      {/* Only render the Plot component if mapData is not null */}
-      {mapData ? (
+      {mapError && !isLoading && (
+        <Box sx={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1,
+          width: '80%',
+          maxWidth: 500,
+        }}>
+          <Alert 
+            severity="error" 
+            variant="outlined"
+            icon={<ErrorOutlineIcon />}
+            sx={{ 
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              boxShadow: 3,
+            }}
+          >
+            {mapError}
+          </Alert>
+        </Box>
+      )}
+      
+      {mapData && (
         <Plot
           data={[mapData]}
           layout={layout}
           config={config}
-          style={{
-            width: '100%',
-            height: mapHeight,
-          }}
-          onClick={handleClick}
+          style={{ width: '100%', height: '100%' }}
           onInitialized={handleMapInitialized}
+          onClick={handleClick}
           onError={handleMapError}
-          useResizeHandler={true}
         />
-      ) : (
-        <Box sx={{ 
-          p: 2, 
-          textAlign: 'center',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <Typography variant="body1" color="text.secondary" gutterBottom>
-            {mapError || 'No data available for the selected filters'}
-          </Typography>
-        </Box>
       )}
     </Box>
   );
 };
 
 WorldMap.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.shape({
-    iso_a3: PropTypes.string,
-    country: PropTypes.string,
-    val: PropTypes.number,
-  })),
-  selectedVar: PropTypes.string,
+  data: PropTypes.array,
   selectedCountryIso: PropTypes.string,
   onCountryClick: PropTypes.func,
   onResetSelection: PropTypes.func,
+  isLoading: PropTypes.bool,
 };
 
 export default WorldMap; 

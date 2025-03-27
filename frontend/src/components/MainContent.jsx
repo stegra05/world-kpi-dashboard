@@ -75,23 +75,22 @@ const InfoCardSkeleton = () => (
 );
 
 const MainContent = ({ 
-  kpiData = [], 
-  filteredData = [], 
-  selectedFilters = {}, 
-  selectedCountryIso = null, 
+  data = [], 
+  loading = false,
   onCountryClick = () => {},
+  selectedCountryIso = null,
   onResetSelection = () => {},
+  selectedMetric = '',
+  selectedBattAlias = '',
   showTable = true,
-  isLoading = false,
-  isMapLoading = false,
-  mapError = null
+  metricDescription = '',
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Calculate statistics based on filtered data
   const stats = useMemo(() => {
-    if (!filteredData || filteredData.length === 0) {
+    if (!data || data.length === 0) {
       return {
         uniqueCountries: 0,
         totalVehicles: 0,
@@ -101,13 +100,13 @@ const MainContent = ({
       };
     }
 
-    const uniqueCountries = new Set(filteredData.map(item => item.country)).size;
-    const totalVehicles = filteredData.reduce((sum, item) => sum + (Number(item.cnt_vhcl) || 0), 0);
-    const uniqueBatteries = new Set(filteredData.map(item => item.battAlias)).size;
+    const uniqueCountries = new Set(data.map(item => item.country)).size;
+    const totalVehicles = data.reduce((sum, item) => sum + (Number(item.cnt_vhcl) || 0), 0);
+    const uniqueBatteries = new Set(data.map(item => item.battAlias)).size;
 
     // Get selected country data and calculate its stats
     const selectedCountryData = selectedCountryIso
-      ? filteredData.filter(item => item.iso_a3 === selectedCountryIso)
+      ? data.filter(item => item.iso_a3 === selectedCountryIso)
       : null;
 
     const selectedCountryStats = selectedCountryData?.length > 0 ? {
@@ -124,80 +123,69 @@ const MainContent = ({
       selectedCountry: selectedCountryStats?.country || 'No country selected',
       selectedCountryStats,
     };
-  }, [filteredData, selectedCountryIso]);
+  }, [data, selectedCountryIso]);
 
   const renderInfoCards = () => {
-    if (isLoading) {
-      return (
-        <>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
-              <InfoCardSkeleton />
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
-              <InfoCardSkeleton />
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
-              <InfoCardSkeleton />
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
-              <InfoCardSkeleton />
-            </Paper>
-          </Grid>
-        </>
-      );
-    }
-
     return (
       <>
         <Grid item xs={12} sm={6} md={3}>
           <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Selected Country"
-              value={stats.selectedCountry}
-              subtitle={
-                stats.selectedCountryStats
-                  ? `${formatNumber(stats.selectedCountryStats.totalVehicles)} vehicles, ${formatNumber(stats.selectedCountryStats.uniqueBatteries)} battery types`
-                  : "Click a country on the map"
-              }
-              icon={<LocationIcon />}
-            />
+            {loading ? (
+              <InfoCardSkeleton />
+            ) : (
+              <InfoCard
+                title="Selected Country"
+                value={stats.selectedCountry}
+                subtitle={
+                  stats.selectedCountryStats
+                    ? `${formatNumber(stats.selectedCountryStats.totalVehicles)} vehicles, ${formatNumber(stats.selectedCountryStats.uniqueBatteries)} battery types`
+                    : "Click a country on the map"
+                }
+                icon={<LocationIcon />}
+              />
+            )}
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Countries"
-              value={formatNumber(stats.uniqueCountries)}
-              subtitle="Number of countries in filtered data"
-              icon={<PublicIcon />}
-            />
+            {loading ? (
+              <InfoCardSkeleton />
+            ) : (
+              <InfoCard
+                title="Countries"
+                value={formatNumber(stats.uniqueCountries)}
+                subtitle="Number of countries in filtered data"
+                icon={<PublicIcon />}
+              />
+            )}
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Total Vehicles"
-              value={formatNumber(stats.totalVehicles)}
-              subtitle="Sum of vehicles in filtered data"
-              icon={<DirectionsCarIcon />}
-            />
+            {loading ? (
+              <InfoCardSkeleton />
+            ) : (
+              <InfoCard
+                title="Total Vehicles"
+                value={formatNumber(stats.totalVehicles)}
+                subtitle="Sum of vehicles in filtered data"
+                icon={<DirectionsCarIcon />}
+              />
+            )}
           </Paper>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Battery Types"
-              value={formatNumber(stats.uniqueBatteries)}
-              subtitle="Unique battery types in filtered data"
-              icon={<BatteryIcon />}
-            />
+            {loading ? (
+              <InfoCardSkeleton />
+            ) : (
+              <InfoCard
+                title="Battery Types"
+                value={formatNumber(stats.uniqueBatteries)}
+                subtitle="Unique battery types in filtered data"
+                icon={<BatteryIcon />}
+              />
+            )}
           </Paper>
         </Grid>
       </>
@@ -206,57 +194,52 @@ const MainContent = ({
 
   return (
     <Box sx={styles.container}>
-      <Toolbar /> {/* Spacer for AppBar */}
+      {selectedMetric && selectedBattAlias && (
+        <Typography variant="subtitle1" sx={{ mb: 2, ml: 1 }}>
+          Showing data for <strong>{selectedMetric}</strong> and battery <strong>{selectedBattAlias}</strong>
+          {metricDescription && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              {metricDescription}
+            </Typography>
+          )}
+        </Typography>
+      )}
       
-      {/* Info Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {renderInfoCards()}
-      </Grid>
-
-      {/* Map and Table Section */}
       <Grid container spacing={2}>
-        {/* Map takes full width */}
+        {renderInfoCards()}
+        
         <Grid item xs={12}>
-          <Paper 
-            elevation={2} 
-            sx={{
-              ...styles.mapPaper,
-              height: '600px', // Increased height for better visibility
-            }}
-          >
-            {isMapLoading && (
+          <Paper elevation={2} sx={styles.mapPaper}>
+            {loading && (
               <Box sx={styles.loadingOverlay}>
                 <CircularProgress />
               </Box>
             )}
-            {mapError ? (
-              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ErrorOutlineIcon color="error" />
-                <Typography color="error">{mapError}</Typography>
-              </Box>
-            ) : (
-              <WorldMap
-                data={filteredData}
-                selectedVar={selectedFilters.var}
-                selectedCountryIso={selectedCountryIso}
-                onCountryClick={onCountryClick}
-                onResetSelection={onResetSelection}
-              />
-            )}
+            <WorldMap 
+              data={data} 
+              onCountryClick={onCountryClick}
+              selectedCountryIso={selectedCountryIso}
+              onResetSelection={onResetSelection}
+              isLoading={loading}
+            />
           </Paper>
         </Grid>
-
-        {/* Table below map */}
+        
         {showTable && (
           <Grid item xs={12}>
             <Paper elevation={2} sx={styles.tablePaper}>
-              <DataTable
-                data={filteredData}
-                selectedVar={selectedFilters.var}
-                selectedCountryIso={selectedCountryIso}
-                onCountryClick={onCountryClick}
-                onResetSelection={onResetSelection}
-              />
+              {loading ? (
+                <Box sx={{ p: 2 }}>
+                  <Skeleton variant="rectangular" height={56} />
+                  <Skeleton variant="rectangular" height={400} sx={{ mt: 1 }} />
+                </Box>
+              ) : (
+                <DataTable 
+                  data={data}
+                  onCountryClick={onCountryClick}
+                  selectedCountryIso={selectedCountryIso}
+                />
+              )}
             </Paper>
           </Grid>
         )}
@@ -266,16 +249,15 @@ const MainContent = ({
 };
 
 MainContent.propTypes = {
-  kpiData: PropTypes.array,
-  filteredData: PropTypes.array,
-  selectedFilters: PropTypes.object,
-  selectedCountryIso: PropTypes.string,
+  data: PropTypes.array,
+  loading: PropTypes.bool,
   onCountryClick: PropTypes.func,
+  selectedCountryIso: PropTypes.string,
   onResetSelection: PropTypes.func,
+  selectedMetric: PropTypes.string,
+  selectedBattAlias: PropTypes.string,
   showTable: PropTypes.bool,
-  isLoading: PropTypes.bool,
-  isMapLoading: PropTypes.bool,
-  mapError: PropTypes.string,
+  metricDescription: PropTypes.string,
 };
 
 export default MainContent; 

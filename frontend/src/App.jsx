@@ -29,6 +29,7 @@ import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
 import { useKpiData } from './hooks/useKpiData';
 import FilterChips from './components/FilterChips';
+import FilterPanel from './components/FilterPanel';
 
 const drawerWidth = 240;
 
@@ -150,7 +151,8 @@ function App() {
     error, 
     refetch,
     fetchFilteredData,
-    setIsFiltering 
+    setIsFiltering,
+    variableDescriptions
   } = useKpiData();
   const { toggleDarkMode, isDarkMode } = useTheme();
   const [showError, setShowError] = useState(false);
@@ -254,40 +256,38 @@ function App() {
 
   return (
     <Box sx={styles.root}>
-      <AppBar position="fixed" sx={styles.appBar}>
+      <AppBar position="fixed" sx={styles.appBar} elevation={0}>
         <Toolbar>
-          <Typography 
-            variant="h6" 
-            component="div" 
-            sx={{ 
-              flexGrow: 1,
-              fontWeight: 'medium',
-              fontSize: { xs: '1rem', sm: '1.25rem' },
-            }}
-          >
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             World KPI Dashboard
           </Typography>
-          <Box display="flex" alignItems="center" gap={1}>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FilterChips 
+              selectedFilters={selectedFilters} 
+              onResetSelection={handleFiltersChange} 
+            />
+            
+            {(isFiltering || isRefreshing) && (
+              <CircularProgress size={24} color="inherit" sx={{ ml: 2 }} />
+            )}
+            
             <IconButton 
-              color="inherit" 
-              onClick={() => setShowTable(prev => !prev)} 
-              aria-label={showTable ? "Hide table" : "Show table"}
-              sx={{ mr: 1 }}
+              color="inherit"
+              onClick={() => setShowTable(!showTable)}
+              sx={{ ml: 1 }}
             >
               {showTable ? <TableChartIcon /> : <TableChartOutlinedIcon />}
             </IconButton>
-            <IconButton 
-              color="inherit" 
-              onClick={toggleDarkMode} 
-              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-            >
+            
+            <IconButton onClick={toggleDarkMode} color="inherit">
               {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
       
-      <Sidebar 
+      <Sidebar
         selectedFilters={selectedFilters}
         onFiltersChange={handleFiltersChange}
         stats={{
@@ -297,24 +297,21 @@ function App() {
         kpiData={kpiData}
       />
       
-      <Box component="main" sx={styles.main}>
+      <Box
+        component="main"
+        sx={styles.main}
+      >
         <Toolbar />
-        
-        <FilterChips
-          selectedFilters={selectedFilters}
-          onResetSelection={handleFiltersChange}
-        />
-        
         <MainContent 
-          kpiData={kpiData}
-          filteredData={filteredData}
-          selectedFilters={selectedFilters}
-          selectedCountryIso={selectedCountryIso}
+          data={filteredData} 
+          loading={isFiltering}
           onCountryClick={handleCountryClick}
+          selectedCountryIso={selectedCountryIso}
           onResetSelection={handleResetSelection}
+          selectedMetric={selectedFilters.var}
+          selectedBattAlias={selectedFilters.battAlias}
           showTable={showTable}
-          isLoading={isLoading}
-          isMapLoading={isFiltering}
+          metricDescription={variableDescriptions[selectedFilters.var] || ''}
         />
       </Box>
       
@@ -325,20 +322,20 @@ function App() {
         <CircularProgress color="inherit" />
       </Backdrop>
       
-      <Snackbar
-        open={showError}
-        autoHideDuration={6000}
+      <Snackbar 
+        open={showError} 
+        autoHideDuration={6000} 
         onClose={() => setShowError(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert
+        <Alert 
           severity={error?.severity || 'error'}
           variant="filled"
           onClose={() => setShowError(false)}
-          sx={{ width: '100%' }}
+          sx={styles.errorAlert}
           action={
             <IconButton
               size="small"
-              aria-label="close"
               color="inherit"
               onClick={() => setShowError(false)}
             >

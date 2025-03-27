@@ -25,7 +25,8 @@ import FilterAltOffIcon from '@mui/icons-material/FilterAltOff';
 const FilterPanel = ({ 
   selectedFilters, 
   onFiltersChange,
-  kpiData = [] // Add kpiData as a prop
+  kpiData = [], 
+  isFiltering = false
 }) => {
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,10 @@ const FilterPanel = ({
     climate: [],
   });
   const [error, setError] = useState(null);
+  
+  // Store temporary filter selections
+  const [tempFilters, setTempFilters] = useState({...selectedFilters});
+  const [filtersChanged, setFiltersChanged] = useState(false);
 
   // Extract filter options directly from kpiData
   const extractFilterOptions = useCallback(() => {
@@ -74,28 +79,45 @@ const FilterPanel = ({
   useEffect(() => {
     extractFilterOptions();
   }, [extractFilterOptions]);
+  
+  // Sync selected filters to temp filters when they change externally
+  useEffect(() => {
+    setTempFilters({...selectedFilters});
+    setFiltersChanged(false);
+  }, [selectedFilters]);
 
-  // Handle filter changes
-  const handleFilterChange = (filterType, value) => {
-    onFiltersChange({
-      ...selectedFilters,
+  // Handle temporary filter changes (doesn't apply them yet)
+  const handleTempFilterChange = (filterType, value) => {
+    setTempFilters(prev => ({
+      ...prev,
       [filterType]: value
-    });
+    }));
+    setFiltersChanged(true);
+  };
+  
+  // Apply all temporary filters
+  const handleApplyFilters = () => {
+    onFiltersChange(tempFilters);
+    setFiltersChanged(false);
   };
 
   // Reset all filters
   const handleResetAllFilters = () => {
-    onFiltersChange({
+    const resetFilters = {
       battAlias: '',
       var: '',
       continent: '',
       climate: '',
       country: '',
-    });
+    };
+    setTempFilters(resetFilters);
+    onFiltersChange(resetFilters);
+    setFiltersChanged(false);
   };
 
   // Count active filters
   const activeFilterCount = Object.values(selectedFilters).filter(Boolean).length;
+  const tempActiveFilterCount = Object.values(tempFilters).filter(Boolean).length;
 
   const renderFilterSelect = (id, label, options) => (
     <FormControl 
@@ -112,28 +134,30 @@ const FilterPanel = ({
           padding: '8px 14px',
         }
       }}
+      disabled={isFiltering}
     >
-      <InputLabel id={`${id}-label`} shrink={!!selectedFilters[id]}>
+      <InputLabel id={`${id}-label`} shrink={!!tempFilters[id]}>
         {label}
       </InputLabel>
       <Select
         labelId={`${id}-label`}
         id={id}
-        value={selectedFilters[id] || ''}
+        value={tempFilters[id] || ''}
         label={label}
-        onChange={(e) => handleFilterChange(id, e.target.value)}
+        onChange={(e) => handleTempFilterChange(id, e.target.value)}
         displayEmpty
         notched
         endAdornment={
-          selectedFilters[id] ? (
+          tempFilters[id] ? (
             <Tooltip title={`Clear ${label} filter`}>
               <IconButton 
                 size="small" 
                 sx={{ marginRight: 1.5 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleFilterChange(id, '');
+                  handleTempFilterChange(id, '');
                 }}
+                disabled={isFiltering}
               >
                 <ClearIcon fontSize="small" />
               </IconButton>
@@ -192,6 +216,7 @@ const FilterPanel = ({
                   size="small" 
                   onClick={handleResetAllFilters}
                   color="primary"
+                  disabled={isFiltering}
                 >
                   <FilterAltOffIcon fontSize="small" />
                 </IconButton>
@@ -204,7 +229,7 @@ const FilterPanel = ({
           {renderFilterSelect('continent', 'Continent', filterOptions.continent)}
           {renderFilterSelect('climate', 'Climate', filterOptions.climate)}
           
-          {selectedFilters.country && (
+          {tempFilters.country && (
             <>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -212,14 +237,31 @@ const FilterPanel = ({
                   Selected Country:
                 </Typography>
                 <Chip 
-                  label={selectedFilters.country}
+                  label={tempFilters.country}
                   size="small"
-                  onDelete={() => handleFilterChange('country', '')}
+                  onDelete={() => handleTempFilterChange('country', '')}
                   sx={{ fontSize: '0.8rem' }}
+                  disabled={isFiltering}
                 />
               </Box>
             </>
           )}
+          
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={handleApplyFilters}
+              disabled={!filtersChanged || isFiltering}
+              sx={{ width: '100%' }}
+            >
+              {isFiltering ? (
+                <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+              ) : null}
+              Apply Filters
+            </Button>
+          </Box>
         </>
       )}
     </Box>
@@ -235,7 +277,8 @@ FilterPanel.propTypes = {
     country: PropTypes.string,
   }).isRequired,
   onFiltersChange: PropTypes.func.isRequired,
-  kpiData: PropTypes.array, // Add prop type for kpiData
+  kpiData: PropTypes.array,
+  isFiltering: PropTypes.bool,
 };
 
 export default FilterPanel; 
