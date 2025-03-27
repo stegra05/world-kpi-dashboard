@@ -158,9 +158,11 @@ function DataTable({ data = [], isLoading = false, selectedFilters = {} }) {
             <Typography variant="h6">Data Table</Typography>
             <Box>
               <Tooltip title="Export as CSV">
-                <IconButton onClick={handleExportCSV} disabled={!filteredData.length}>
-                  <DownloadIcon />
-                </IconButton>
+                <span>
+                  <IconButton onClick={handleExportCSV} disabled={!filteredData.length}>
+                    <DownloadIcon />
+                  </IconButton>
+                </span>
               </Tooltip>
             </Box>
           </Box>

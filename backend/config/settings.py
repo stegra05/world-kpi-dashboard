@@ -9,12 +9,8 @@ DATA_FILE = os.path.join(BASE_DIR, 'data', 'world_kpi_anonym.csv')
 
 # API settings
 API_V1_PREFIX = '/api/v1'
-CORS_ORIGINS = [
-    "http://localhost:5173",  # Vite default port
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",  # Alternative Vite port
-    "http://127.0.0.1:5174",
-]
+# TODO: Restrict CORS origins for production - this is a temporary configuration for testing only
+CORS_ORIGINS = ["*"]
 
 # Server settings
 HOST = "0.0.0.0"

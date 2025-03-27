@@ -1,11 +1,13 @@
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from typing import List, Dict, Any, Optional
 import uvicorn
 import pandas as pd
 from pathlib import Path
 import logging
+import os
 
 from models.data_model import (
     KPIData, 
@@ -22,6 +24,11 @@ from config.settings import DATA_FILE, CORS_ORIGINS
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Define static file paths
+STATIC_DIR = "../frontend/dist"
+STATIC_ASSETS_DIR = os.path.join(STATIC_DIR, "assets")
+INDEX_HTML_FILE = os.path.join(STATIC_DIR, "index.html")
 
 app = FastAPI(
     title="World KPI Dashboard API",
@@ -44,6 +51,12 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize DataService: {str(e)}")
     raise
+
+# Mount static assets directory if it exists
+if os.path.isdir(STATIC_ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=STATIC_ASSETS_DIR), name="assets")
+else:
+    logger.warning(f"Frontend assets directory not found at {STATIC_ASSETS_DIR}")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -281,6 +294,19 @@ async def get_filtered_data(
             status_code=500,
             detail="Failed to retrieve filtered data. Please try again later."
         )
+
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(request: Request, full_path: str):
+    """
+    Catch-all route to serve the SPA for any path not matched by API routes.
+    This must be the last route defined in the file.
+    """
+    if not os.path.exists(INDEX_HTML_FILE):
+        raise HTTPException(
+            status_code=404,
+            detail="Frontend index.html not found. Run 'npm run build' in frontend."
+        )
+    return FileResponse(INDEX_HTML_FILE)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True) 

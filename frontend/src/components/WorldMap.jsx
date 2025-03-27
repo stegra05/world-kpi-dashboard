@@ -174,6 +174,13 @@ const WorldMap = ({
     showlegend: false,
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
+    hoverlayer: {
+      bgcolor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
+      bordercolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+      font: {
+        color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+      },
+    },
     modebar: {
       orientation: 'h',
       bgcolor: 'transparent',
@@ -274,21 +281,12 @@ WorldMap.propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
     iso_a3: PropTypes.string,
     country: PropTypes.string,
-    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    var: PropTypes.string,
+    val: PropTypes.number,
   })),
   selectedVar: PropTypes.string,
   selectedCountryIso: PropTypes.string,
   onCountryClick: PropTypes.func,
   onResetSelection: PropTypes.func,
-};
-
-WorldMap.defaultProps = {
-  data: [],
-  selectedVar: '',
-  selectedCountryIso: null,
-  onCountryClick: () => {},
-  onResetSelection: () => {},
 };
 
 export default WorldMap; 

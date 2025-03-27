@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { formatNumber } from '../utils/formatUtils';
 
-const InfoCard = ({ title, value, subtitle, icon }) => {
+const InfoCard = ({ title, value, subtitle = '', icon = null }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -115,11 +115,6 @@ InfoCard.propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
   subtitle: PropTypes.string,
   icon: PropTypes.node,
-};
-
-InfoCard.defaultProps = {
-  subtitle: '',
-  icon: null,
 };
 
 export default InfoCard; 

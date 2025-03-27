@@ -77,10 +77,10 @@ const InfoCardSkeleton = () => (
 const MainContent = ({ 
   kpiData = [], 
   filteredData = [], 
-  selectedFilters, 
+  selectedFilters = {}, 
   selectedCountryIso = null, 
-  onCountryClick,
-  onResetSelection,
+  onCountryClick = () => {},
+  onResetSelection = () => {},
   showTable = true,
   isLoading = false,
   isMapLoading = false,
@@ -266,46 +266,16 @@ const MainContent = ({
 };
 
 MainContent.propTypes = {
-  kpiData: PropTypes.arrayOf(PropTypes.shape({
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    country: PropTypes.string,
-    iso_a3: PropTypes.string,
-    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  })),
-  filteredData: PropTypes.arrayOf(PropTypes.shape({
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    country: PropTypes.string,
-    iso_a3: PropTypes.string,
-    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  })),
-  selectedFilters: PropTypes.shape({
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    country: PropTypes.string,
-  }).isRequired,
+  kpiData: PropTypes.array,
+  filteredData: PropTypes.array,
+  selectedFilters: PropTypes.object,
   selectedCountryIso: PropTypes.string,
-  onCountryClick: PropTypes.func.isRequired,
-  onResetSelection: PropTypes.func.isRequired,
+  onCountryClick: PropTypes.func,
+  onResetSelection: PropTypes.func,
   showTable: PropTypes.bool,
   isLoading: PropTypes.bool,
   isMapLoading: PropTypes.bool,
   mapError: PropTypes.string,
-};
-
-MainContent.defaultProps = {
-  showTable: true,
-  isLoading: false,
-  isMapLoading: false,
 };
 
 export default MainContent; 

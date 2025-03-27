@@ -29,7 +29,8 @@ const drawerWidth = 240;
 const Sidebar = ({ 
   selectedFilters, 
   onFiltersChange, 
-  stats = { battTypes: 0, varTypes: 0 }
+  stats = { battTypes: 0, varTypes: 0 },
+  kpiData = []
 }) => {
   const theme = useTheme();
   
@@ -160,6 +161,7 @@ const Sidebar = ({
         <FilterPanel
           selectedFilters={selectedFilters}
           onFiltersChange={onFiltersChange}
+          kpiData={kpiData}
         />
       </Box>
     </Drawer>
@@ -173,6 +175,7 @@ Sidebar.propTypes = {
     battTypes: PropTypes.number,
     varTypes: PropTypes.number,
   }),
+  kpiData: PropTypes.array,
 };
 
 export default Sidebar; 
