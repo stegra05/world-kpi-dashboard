@@ -144,6 +144,7 @@ function App() {
     var: '',
     continent: '',
     country: '',
+    climate: '',
   });
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCountryIso, setSelectedCountryIso] = useState(null);
@@ -198,6 +199,9 @@ function App() {
     if (selectedFilters.country) {
       filtered = filtered.filter(item => item.country === selectedFilters.country);
     }
+    if (selectedFilters.climate) {
+      filtered = filtered.filter(item => item.climate === selectedFilters.climate);
+    }
 
     // If no data after filtering, clear country selection
     if (filtered.length === 0 && selectedCountryIso) {
@@ -228,21 +232,14 @@ function App() {
         </Toolbar>
       </AppBar>
       
-      <Sidebar 
-        width={drawerWidth} 
-        onThemeToggle={toggleDarkMode}
+      <Sidebar
+        width={drawerWidth}
         variant="permanent"
+        onThemeToggle={toggleDarkMode}
         data={kpiData}
         selectedFilters={selectedFilters}
         onFiltersChange={handleFiltersChange}
-        sx={{
-          width: drawerWidth,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-          },
-        }}
+        isLoading={isLoading}
       />
       
       <Box component="main" sx={styles.main}>

@@ -7,7 +7,7 @@ import pandas as pd
 from pathlib import Path
 import logging
 
-from .models.data_model import (
+from models.data_model import (
     KPIData, 
     MetricsResponse, 
     BattAliasesResponse, 
@@ -15,8 +15,8 @@ from .models.data_model import (
     FilteredDataResponse,
     Continent
 )
-from .services.data_service import DataService
-from .config.settings import DATA_FILE, CORS_ORIGINS
+from services.data_service import DataService
+from config.settings import DATA_FILE, CORS_ORIGINS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -75,14 +75,20 @@ async def get_data() -> List[KPIData]:
         HTTPException: If data loading fails
     """
     try:
-        return data_service.get_all_data()
-    except HTTPException:
+        logger.info("GET /api/v1/data endpoint called")
+        data = data_service.get_all_data()
+        logger.info(f"Successfully retrieved {len(data)} records")
+        return data
+    except HTTPException as he:
+        logger.error(f"HTTPException in get_data endpoint: {str(he)}", exc_info=True)
         raise
     except Exception as e:
+        import traceback
         logger.error(f"Error in get_data endpoint: {str(e)}", exc_info=True)
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
-            detail="Failed to load KPI data. Please try again later."
+            detail=f"Failed to load KPI data: {str(e)}"
         )
 
 @app.get("/api/v1/metrics", response_model=MetricsResponse)
@@ -141,50 +147,6 @@ async def get_batt_aliases() -> BattAliasesResponse:
             detail="Failed to retrieve battery aliases. Please try again later."
         )
 
-@app.get("/api/v1/data/filtered", response_model=FilteredDataResponse)
-async def get_filtered_data(
-    metric: str = Query(..., description="The metric to filter by"),
-    batt_alias: str = Query(..., description="The battery alias to filter by")
-) -> FilteredDataResponse:
-    """
-    Get filtered KPI data by metric and battery alias.
-    
-    Args:
-        metric (str): The metric to filter by
-        batt_alias (str): The battery alias to filter by
-        
-    Returns:
-        FilteredDataResponse: Filtered KPI records with metadata
-        
-    Raises:
-        HTTPException: If filtered data cannot be retrieved or invalid parameters
-    """
-    try:
-        # Validate input parameters
-        if not metric or not batt_alias:
-            raise HTTPException(
-                status_code=400,
-                detail="Both metric and batt_alias parameters are required"
-            )
-        
-        # Get filtered data
-        filtered_data = data_service.get_data_by_filters(metric, batt_alias)
-        
-        return FilteredDataResponse(
-            data=filtered_data,
-            total=len(filtered_data),
-            metric=metric,
-            batt_alias=batt_alias
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error in get_filtered_data endpoint: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve filtered data. Please try again later."
-        )
-
 @app.get("/api/v1/continents", response_model=ContinentsResponse)
 async def get_continents() -> ContinentsResponse:
     """
@@ -211,6 +173,84 @@ async def get_continents() -> ContinentsResponse:
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve continents. Please try again later."
+        )
+
+@app.get("/api/v1/climates", response_model=List[str])
+async def get_climates() -> List[str]:
+    """
+    Get list of unique climates available in the dataset.
+    
+    Returns:
+        List[str]: List of unique climates
+        
+    Raises:
+        HTTPException: If climates cannot be retrieved
+    """
+    try:
+        climates = data_service.get_unique_climates()
+        if not climates:
+            raise HTTPException(
+                status_code=404,
+                detail="No climates found in the dataset"
+            )
+        return climates
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_climates endpoint: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve climates. Please try again later."
+        )
+
+@app.get("/api/v1/data/filtered", response_model=FilteredDataResponse)
+async def get_filtered_data(
+    metric: str = Query(..., description="The metric to filter by"),
+    batt_alias: str = Query(..., description="The battery alias to filter by"),
+    continent: Optional[str] = Query(None, description="The continent to filter by"),
+    climate: Optional[str] = Query(None, description="The climate to filter by")
+) -> FilteredDataResponse:
+    """
+    Get filtered KPI data by metric and battery alias.
+    
+    Args:
+        metric (str): The metric to filter by
+        batt_alias (str): The battery alias to filter by
+        continent (Optional[str]): The continent to filter by
+        climate (Optional[str]): The climate to filter by
+        
+    Returns:
+        FilteredDataResponse: Filtered KPI records with metadata
+        
+    Raises:
+        HTTPException: If filtered data cannot be retrieved or invalid parameters
+    """
+    try:
+        # Validate input parameters
+        if not metric or not batt_alias:
+            raise HTTPException(
+                status_code=400,
+                detail="Both metric and batt_alias parameters are required"
+            )
+        
+        # Get filtered data - continent will be passed as string directly
+        filtered_data = data_service.get_data_by_filters(metric, batt_alias, continent, climate)
+        
+        return FilteredDataResponse(
+            data=filtered_data,
+            total=len(filtered_data),
+            metric=metric,
+            batt_alias=batt_alias,
+            continent=continent,
+            climate=climate
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_filtered_data endpoint: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve filtered data. Please try again later."
         )
 
 if __name__ == "__main__":

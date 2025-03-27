@@ -19,7 +19,7 @@ import {
 } from '@mui/icons-material';
 import FilterPanel from './FilterPanel';
 
-const Sidebar = ({ width, onThemeToggle, variant, sx, data, selectedFilters, onFiltersChange }) => {
+const Sidebar = ({ width, onThemeToggle, variant, sx, data, selectedFilters, onFiltersChange, isLoading }) => {
   const theme = useTheme();
 
   return (
@@ -48,9 +48,10 @@ const Sidebar = ({ width, onThemeToggle, variant, sx, data, selectedFilters, onF
       <Divider />
       <Box sx={{ p: 2 }}>
         <FilterPanel
-          data={data}
+          kpiData={data}
           selectedFilters={selectedFilters}
           onFiltersChange={onFiltersChange}
+          isLoading={isLoading}
         />
       </Box>
       <Box sx={{ mt: 'auto', p: 2 }}>
@@ -70,6 +71,7 @@ Sidebar.propTypes = {
   data: PropTypes.array.isRequired,
   selectedFilters: PropTypes.object.isRequired,
   onFiltersChange: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
 };
 
 export default Sidebar; 

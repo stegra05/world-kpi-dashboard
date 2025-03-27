@@ -43,7 +43,7 @@ export const useKpiData = () => {
 
   const fetchDataWithRetry = async (retryCount = 0) => {
     try {
-      const response = await axios.get(`${API_URL}/api/data`, {
+      const response = await axios.get(`${API_URL}/api/v1/data`, {
         timeout: TIMEOUT_MS,
         validateStatus: status => status === 200
       });
@@ -60,13 +60,22 @@ export const useKpiData = () => {
         'var' in item &&
         'battAlias' in item &&
         'val' in item
+        // Note: climate field is optional
       );
 
       if (!isValidData) {
         throw new Error('Invalid data format: Missing required fields');
       }
 
-      setKpiData(response.data);
+      // Add climate field if not present in any item
+      const dataWithClimate = response.data.map(item => {
+        if (!('climate' in item)) {
+          return { ...item, climate: null };
+        }
+        return item;
+      });
+
+      setKpiData(dataWithClimate);
       setIsLoading(false);
       setError(null);
     } catch (err) {

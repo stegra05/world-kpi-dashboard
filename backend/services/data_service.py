@@ -1,7 +1,8 @@
 import pandas as pd
 from typing import List, Optional
-from ..models.data_model import KPIData, Continent
+from models.data_model import KPIData, Continent
 from fastapi import HTTPException
+import logging
 
 class DataService:
     def __init__(self, csv_path: str):
@@ -29,31 +30,59 @@ class DataService:
             if missing_columns:
                 raise ValueError(f"Missing required columns: {missing_columns}")
             
+            # Check if climate column exists and create it if not
+            if 'climate' not in self.df.columns:
+                self.df['climate'] = None
+                
             # Validate and clean data types with specific error handling
             try:
                 self.df['iso_a3'] = self.df['iso_a3'].astype(str).str[:3]
                 self.df['val'] = pd.to_numeric(self.df['val'], errors='coerce')
-                self.df['cnt_vhcl'] = pd.to_numeric(self.df['cnt_vhcl'], errors='coerce')
-                self.df['continent'] = self.df['continent'].fillna(None)
+                self.df['cnt_vhcl'] = pd.to_numeric(self.df['cnt_vhcl'], errors='coerce').fillna(0).astype(int)
+                self.df['continent'] = self.df['continent'].fillna('').astype(str)
+                self.df['climate'] = self.df['climate'].fillna('').astype(str)
+                
+                # Replace any NaN values to prevent serialization issues
+                self.df = self.df.fillna('')
             except Exception as e:
                 raise ValueError(f"Error during data type conversion: {str(e)}")
             
             # Validate data quality
             if self.df['val'].isna().all():
                 raise ValueError("No valid numeric values found in the 'val' column")
+                
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Data loaded successfully: {len(self.df)} rows, columns: {list(self.df.columns)}")
             
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
+            import traceback
+            logging.error(f"Unexpected error loading data: {str(e)}")
+            logging.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=f"Unexpected error loading data: {str(e)}")
 
     def get_all_data(self) -> List[KPIData]:
         """Get all KPI data."""
         try:
-            return self.df.to_dict(orient='records')
+            logger = logging.getLogger(__name__)
+            logger.setLevel(logging.DEBUG)
+            logger.debug("Converting dataframe to dict")
+            logger.debug(f"Dataframe shape: {self.df.shape}")
+            logger.debug(f"Dataframe columns: {self.df.columns.tolist()}")
+            logger.debug(f"Sample data: {self.df.head(1).to_dict(orient='records')}")
+            
+            result = self.df.to_dict(orient='records')
+            logger.debug(f"Conversion complete, returning {len(result)} records")
+            return result
         except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error converting data to records: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=f"Error converting data to records: {str(e)}")
 
     def get_unique_metrics(self) -> List[str]:
@@ -74,21 +103,30 @@ class DataService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error retrieving unique battery aliases: {str(e)}")
 
-    def get_unique_continents(self) -> List[Continent]:
+    def get_unique_continents(self) -> List[str]:
         """Get list of unique continents."""
         try:
-            continents = self.df['continent'].dropna().unique().tolist()
-            return [Continent(c) for c in continents if c in Continent.__members__.values()]
+            return self.df['continent'].dropna().unique().tolist()
         except KeyError:
             raise HTTPException(status_code=500, detail="Column 'continent' not found in dataset")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error retrieving unique continents: {str(e)}")
 
+    def get_unique_climates(self) -> List[str]:
+        """Get list of unique climates."""
+        try:
+            return self.df['climate'].dropna().unique().tolist()
+        except KeyError:
+            raise HTTPException(status_code=500, detail="Column 'climate' not found in dataset")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error retrieving unique climates: {str(e)}")
+
     def get_data_by_filters(
         self, 
         metric: str, 
         batt_alias: str,
-        continent: Optional[Continent] = None
+        continent: Optional[str] = None,
+        climate: Optional[str] = None
     ) -> List[KPIData]:
         """Get filtered KPI data."""
         try:
@@ -97,8 +135,10 @@ class DataService:
                 raise ValueError(f"Invalid metric: {metric}")
             if batt_alias not in self.df['battAlias'].unique():
                 raise ValueError(f"Invalid battery alias: {batt_alias}")
-            if continent and continent.value not in self.df['continent'].unique():
-                raise ValueError(f"Invalid continent: {continent.value}")
+            if continent and continent not in self.df['continent'].unique():
+                raise ValueError(f"Invalid continent: {continent}")
+            if climate and climate not in self.df['climate'].unique() and climate != '':
+                raise ValueError(f"Invalid climate: {climate}")
 
             # Apply filters
             filtered_df = self.df[
@@ -107,7 +147,10 @@ class DataService:
             ]
             
             if continent:
-                filtered_df = filtered_df[filtered_df['continent'] == continent.value]
+                filtered_df = filtered_df[filtered_df['continent'] == continent]
+                
+            if climate:
+                filtered_df = filtered_df[filtered_df['climate'] == climate]
             
             if filtered_df.empty:
                 raise ValueError("No data found for the specified filters")

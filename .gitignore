@@ -1,35 +1,78 @@
 # Python
-venv/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
+.Python
 .env
-*.env.*
-!*.env.example
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.env.*
+!.env.example
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Node.js
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Node.js / JavaScript
 node_modules/
-dist/
-build/
-.npm/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-*.log
+pnpm-debug.log*
+lerna-debug.log*
+.npm/
+.pnp/
+.pnp.js
 
-# IDE/Editor spezifisch
-.vscode/
+# Build / distribution
+dist/
+dist-ssr/
+build/
+*.local
+
+# IDE / Editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
 .idea/
 *.sublime-project
 *.sublime-workspace
-
-# OS spezifisch
 .DS_Store
+.Trashes
 Thumbs.db
-
-# Build Artefakte etc.
-*.local
-
-# Cursor AI specific (falls vorhanden)
+ehthumbs.db
+*.swp
+*.swo
 .cursor/
+
+# FastAPI specific
+__pycache__/
+*.py[cod]
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Cursor AI specific
+.cursor/
+
+# Local environment files
+*.local
