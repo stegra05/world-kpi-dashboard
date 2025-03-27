@@ -10,7 +10,8 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',  // Use 127.0.0.1 instead of localhost
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
+        // Don't rewrite the path - pass the API requests directly
+        // rewrite: (path) => path.replace(/^\/api/, '/api/v1'),
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             console.log('proxy error', err);

@@ -143,11 +143,13 @@ ErrorState.propTypes = {
 function App() {
   const { 
     kpiData, 
+    filteredData,
     isLoading, 
     isFiltering, 
     isRefreshing,
     error, 
     refetch,
+    fetchFilteredData,
     setIsFiltering 
   } = useKpiData();
   const { toggleDarkMode, isDarkMode } = useTheme();
@@ -161,7 +163,6 @@ function App() {
     country: '',
     climate: '',
   });
-  const [filteredData, setFilteredData] = useState([]);
   const [selectedCountryIso, setSelectedCountryIso] = useState(null);
   const [showTable, setShowTable] = useState(true);
 
@@ -172,15 +173,47 @@ function App() {
     }
   }, [error]);
 
+  // Initialize filters once data is loaded
+  useEffect(() => {
+    // Only run when kpiData is loaded and filters are empty
+    if (kpiData.length > 0 && !selectedFilters.var && !selectedFilters.battAlias) {
+      const uniqueMetrics = [...new Set(kpiData.map(item => item.var))];
+      const uniqueBatteries = [...new Set(kpiData.map(item => item.battAlias))];
+      
+      if (uniqueMetrics.length > 0 && uniqueBatteries.length > 0) {
+        const initialFilters = {
+          var: uniqueMetrics[0],
+          battAlias: uniqueBatteries[0],
+          continent: '',
+          country: '',
+          climate: ''
+        };
+        
+        console.log('Initializing filters:', initialFilters);
+        setSelectedFilters(initialFilters);
+        
+        // Also fetch the filtered data to ensure consistency
+        fetchFilteredData(initialFilters);
+      }
+    }
+  }, [kpiData, selectedFilters.var, selectedFilters.battAlias, fetchFilteredData]);
+
   // Callback to handle filter changes
   const handleFiltersChange = useCallback((newFilters) => {
     console.log('Filter changed:', newFilters);  // Debug log
-    setIsFiltering(true);
-    setSelectedFilters(prev => ({
-      ...prev,
+    
+    // Update the selected filters state
+    const updatedFilters = {
+      ...selectedFilters,
       ...newFilters
-    }));
-  }, [setIsFiltering]);
+    };
+    setSelectedFilters(updatedFilters);
+
+    // If metric (var) and battery alias are set, trigger server-side filtering
+    if (updatedFilters.var && updatedFilters.battAlias) {
+      fetchFilteredData(updatedFilters);
+    }
+  }, [selectedFilters, fetchFilteredData]);
 
   // Handler for country click
   const handleCountryClick = useCallback((isoCode) => {
@@ -190,53 +223,26 @@ function App() {
     // Find the country name from kpiData
     const countryData = kpiData?.find(item => item.iso_a3 === isoCode);
     if (countryData) {
-      setSelectedFilters(prev => ({
-        ...prev,
+      handleFiltersChange({
         country: countryData.country
-      }));
+      });
     } else {
       // If country not found, clear the selection
       setSelectedCountryIso(null);
-      setSelectedFilters(prev => ({
-        ...prev,
+      handleFiltersChange({
         country: ''
-      }));
+      });
       console.warn(`Country with ISO code ${isoCode} not found in data`);
     }
-  }, [kpiData]);
+  }, [kpiData, handleFiltersChange]);
 
   // Handler for resetting country selection
   const handleResetSelection = useCallback(() => {
     setSelectedCountryIso(null);
-    setSelectedFilters(prev => ({
-      ...prev,
+    handleFiltersChange({
       country: ''
-    }));
-  }, []);
-
-  // Effect to filter data based on selected filters
-  useEffect(() => {
-    if (!kpiData || !Array.isArray(kpiData)) {
-      console.log('No data available for filtering');  // Debug log
-      setFilteredData([]);
-      setIsFiltering(false);
-      return;
-    }
-
-    console.log('Filtering data with:', selectedFilters);  // Debug log
-    let filtered = [...kpiData];
-
-    // Apply filters
-    Object.entries(selectedFilters).forEach(([key, value]) => {
-      if (value && filtered.length > 0) {
-        filtered = filtered.filter(item => item[key] === value);
-      }
     });
-
-    console.log('Filtered data length:', filtered.length);  // Debug log
-    setFilteredData(filtered);
-    setIsFiltering(false);
-  }, [kpiData, selectedFilters, setIsFiltering]);
+  }, [handleFiltersChange]);
 
   if (isLoading) {
     return <LoadingState onRetry={refetch} />;
@@ -250,51 +256,56 @@ function App() {
     <Box sx={styles.root}>
       <AppBar position="fixed" sx={styles.appBar}>
         <Toolbar>
-          <Typography variant="h6" noWrap component="div" sx={{ mr: 3 }}>
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ 
+              flexGrow: 1,
+              fontWeight: 'medium',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+            }}
+          >
             World KPI Dashboard
           </Typography>
-          <Box sx={{ 
-            flexGrow: 1, 
-            display: 'flex', 
-            alignItems: 'center',
-            overflow: 'hidden',
-          }}>
-            <FilterChips 
-              selectedFilters={selectedFilters} 
-              onResetSelection={(newFilters) => {
-                const updatedFilters = { ...selectedFilters };
-                Object.keys(newFilters).forEach(key => {
-                  if (newFilters[key] === '') {
-                    updatedFilters[key] = '';
-                  }
-                });
-                handleResetSelection(updatedFilters);
-              }}
-            />
+          <Box display="flex" alignItems="center" gap={1}>
+            <IconButton 
+              color="inherit" 
+              onClick={() => setShowTable(prev => !prev)} 
+              aria-label={showTable ? "Hide table" : "Show table"}
+              sx={{ mr: 1 }}
+            >
+              {showTable ? <TableChartIcon /> : <TableChartOutlinedIcon />}
+            </IconButton>
+            <IconButton 
+              color="inherit" 
+              onClick={toggleDarkMode} 
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
           </Box>
-          <IconButton 
-            onClick={() => setShowTable(!showTable)} 
-            color="inherit"
-            sx={{ mr: 1 }}
-          >
-            {showTable ? <TableChartIcon /> : <TableChartOutlinedIcon />}
-          </IconButton>
-          <IconButton onClick={toggleDarkMode} color="inherit">
-            {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
         </Toolbar>
       </AppBar>
-
-      <Sidebar
-        kpiData={kpiData}
+      
+      <Sidebar 
         selectedFilters={selectedFilters}
         onFiltersChange={handleFiltersChange}
-        isLoading={isLoading || isFiltering}
+        stats={{
+          battTypes: Array.from(new Set(kpiData.map(item => item.battAlias))).length,
+          varTypes: Array.from(new Set(kpiData.map(item => item.var))).length,
+        }}
+        kpiData={kpiData}
       />
-
+      
       <Box component="main" sx={styles.main}>
-        <Toolbar /> {/* Spacer for AppBar */}
-        <MainContent
+        <Toolbar />
+        
+        <FilterChips
+          selectedFilters={selectedFilters}
+          onResetSelection={handleFiltersChange}
+        />
+        
+        <MainContent 
           kpiData={kpiData}
           filteredData={filteredData}
           selectedFilters={selectedFilters}
@@ -302,38 +313,36 @@ function App() {
           onCountryClick={handleCountryClick}
           onResetSelection={handleResetSelection}
           showTable={showTable}
-          isLoading={isLoading || isFiltering}
+          isLoading={isLoading}
+          isMapLoading={isFiltering}
         />
       </Box>
-
-      {/* Global loading backdrop for refreshing */}
+      
       <Backdrop
         sx={styles.backdrop}
-        open={isRefreshing}
-        onClick={() => {}}
+        open={isFiltering}
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-
-      {/* Error Snackbar */}
+      
       <Snackbar
         open={showError}
         autoHideDuration={6000}
         onClose={() => setShowError(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert
-          onClose={() => setShowError(false)}
           severity={error?.severity || 'error'}
-          sx={styles.errorAlert}
+          variant="filled"
+          onClose={() => setShowError(false)}
+          sx={{ width: '100%' }}
           action={
             <IconButton
+              size="small"
               aria-label="close"
               color="inherit"
-              size="small"
               onClick={() => setShowError(false)}
             >
-              <CloseIcon fontSize="inherit" />
+              <CloseIcon fontSize="small" />
             </IconButton>
           }
         >

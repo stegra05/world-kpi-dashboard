@@ -6,7 +6,8 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
 // Use the proxy URL instead of the direct backend URL
-const API_URL = '/api';
+// and include the full path with version
+const API_URL = '/api/v1';
 
 const getErrorMessage = (error) => {
   if (error.response) {
@@ -78,10 +79,11 @@ export const useKpiData = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [variableDescriptions, setVariableDescriptions] = useState({});
+  const [filteredData, setFilteredData] = useState([]);
 
   const fetchDataWithRetry = async (retryCount = 0, isRefresh = false) => {
     try {
-      console.log('Fetching data from:', `${API_URL}/data`);  // Add debug log
+      console.log('Fetching data from:', `${API_URL}/data`);
       const response = await axios.get(`${API_URL}/data`, {
         timeout: TIMEOUT_MS,
         validateStatus: status => status === 200
@@ -157,6 +159,24 @@ export const useKpiData = () => {
       }));
 
       setKpiData(dataWithClimate);
+      
+      // Initialize filtered data with all data so map has something to display
+      // Find the first valid metric and battery alias 
+      const firstMetric = [...new Set(dataWithClimate.map(item => item.var))][0] || '';
+      const firstBattAlias = [...new Set(dataWithClimate.map(item => item.battAlias))][0] || '';
+      
+      if (firstMetric && firstBattAlias) {
+        // Filter the initial data to show only one metric and battery combo
+        const initialFiltered = dataWithClimate.filter(
+          item => item.var === firstMetric && item.battAlias === firstBattAlias
+        );
+        console.log(`Initializing filtered data with metric "${firstMetric}" and battery "${firstBattAlias}" (${initialFiltered.length} items)`);
+        setFilteredData(initialFiltered.length > 0 ? initialFiltered : dataWithClimate);
+      } else {
+        // Fallback to all data if no consistent metric/battery found
+        setFilteredData(dataWithClimate);
+      }
+      
       setIsLoading(false);
       setIsRefreshing(false);
       setError(null);
@@ -178,6 +198,96 @@ export const useKpiData = () => {
     }
   };
 
+  const fetchFilteredData = async (filters, retryCount = 0) => {
+    if (!filters.var || !filters.battAlias) {
+      // Not enough filter data available yet, don't make API request
+      return;
+    }
+
+    try {
+      setIsFiltering(true);
+      console.log('Fetching filtered data with:', filters);
+      
+      // Construct query params for the endpoint
+      const params = {
+        metric: filters.var,
+        batt_alias: filters.battAlias,
+        ...(filters.continent && { continent: filters.continent }),
+        ...(filters.climate && { climate: filters.climate })
+      };
+      
+      const url = `${API_URL}/data/filtered`;
+      console.log('Making request to:', url);
+      
+      const response = await axios.get(url, {
+        params,
+        timeout: TIMEOUT_MS,
+        validateStatus: status => status === 200
+      });
+
+      // Basic data validation
+      if (!response.data || !response.data.data) {
+        throw new Error('No data received from server');
+      }
+
+      if (!Array.isArray(response.data.data)) {
+        console.error('Invalid response data:', response.data);
+        throw new Error('Invalid data format: Expected an array in data property');
+      }
+
+      if (response.data.data.length === 0) {
+        setFilteredData([]);
+        setIsFiltering(false);
+        return;
+      }
+
+      // Log first record for debugging
+      console.debug('First filtered record:', response.data.data[0]);
+      
+      // Apply country filter on client-side if needed (since it's not part of the backend filter)
+      let filteredResults = response.data.data;
+      if (filters.country) {
+        filteredResults = filteredResults.filter(item => item.country === filters.country);
+        console.log(`Applied client-side country filter for "${filters.country}", remaining items: ${filteredResults.length}`);
+      }
+      
+      // Update filtered data state with the server-filtered results
+      setFilteredData(filteredResults);
+      setError(null);
+    } catch (err) {
+      // Handle network errors with retry
+      if (retryCount < MAX_RETRIES && (!err.response || err.code === 'ECONNABORTED')) {
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        return fetchFilteredData(filters, retryCount + 1);
+      }
+      
+      console.error('Filter API error:', err);
+      
+      // If we get a 404, fall back to client-side filtering
+      if (err.response && err.response.status === 404) {
+        console.log('Filtered endpoint not found, falling back to client-side filtering');
+        const clientFiltered = kpiData.filter(item => 
+          item.var === filters.var && 
+          item.battAlias === filters.battAlias &&
+          (!filters.continent || item.continent === filters.continent) &&
+          (!filters.climate || item.climate === filters.climate) &&
+          (!filters.country || item.country === filters.country)
+        );
+        setFilteredData(clientFiltered);
+        setError(null);
+      } else {
+        const errorInfo = getErrorMessage(err);
+        const retryInfo = retryCount > 0 ? ` (after ${retryCount} retries)` : '';
+        setError({
+          ...errorInfo,
+          detail: `${errorInfo.detail}${retryInfo}`
+        });
+      }
+    } finally {
+      setIsFiltering(false);
+    }
+  };
+
   const refetch = () => {
     setIsRefreshing(true);
     setError(null);
@@ -190,11 +300,13 @@ export const useKpiData = () => {
 
   return { 
     kpiData, 
+    filteredData,
     isLoading, 
     isFiltering, 
     isRefreshing,
     error, 
-    refetch, 
+    refetch,
+    fetchFilteredData,
     variableDescriptions,
     setIsFiltering 
   };

@@ -250,29 +250,45 @@ const WorldMap = ({
           right: 0,
           bottom: 0,
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: 'rgba(255,255,255,0.7)',
+          alignItems: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
           zIndex: 2,
-          backdropFilter: 'blur(2px)',
         }}>
-          <CircularProgress size={40} />
+          <CircularProgress />
         </Box>
       )}
-      <Plot
-        data={[mapData]}
-        layout={layout}
-        config={config}
-        onClick={handleClick}
-        onInitialized={handleMapInitialized}
-        onError={handleMapError}
-        style={{ 
-          width: '100%', 
-          height: mapHeight, 
-          minHeight: '100%'
-        }}
-        useResizeHandler={true}
-      />
+      
+      {/* Only render the Plot component if mapData is not null */}
+      {mapData ? (
+        <Plot
+          data={[mapData]}
+          layout={layout}
+          config={config}
+          style={{
+            width: '100%',
+            height: mapHeight,
+          }}
+          onClick={handleClick}
+          onInitialized={handleMapInitialized}
+          onError={handleMapError}
+          useResizeHandler={true}
+        />
+      ) : (
+        <Box sx={{ 
+          p: 2, 
+          textAlign: 'center',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Typography variant="body1" color="text.secondary" gutterBottom>
+            {mapError || 'No data available for the selected filters'}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };
