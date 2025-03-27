@@ -7,6 +7,8 @@ import {
   Box,
   useTheme,
   useMediaQuery,
+  Avatar,
+  Divider,
 } from '@mui/material';
 import { formatNumber } from '../utils/formatUtils';
 
@@ -14,35 +16,45 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
+  // Convert string 'No country selected' to 'Global View' for display
+  const displayValue = value === 'No country selected' ? 'Global View' : value;
+
   return (
     <Card
+      elevation={3}
       sx={{
-        height: 'auto',
-        minHeight: '100%',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'background.paper',
-        borderRadius: 1,
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        position: 'relative',
+        overflow: 'visible',
         transition: 'all 0.3s ease-in-out',
         '&:hover': {
           transform: 'translateY(-4px)',
-          boxShadow: 4,
+          boxShadow: 6,
         },
       }}
     >
-      <CardContent sx={{ 
-        flexGrow: 1, 
-        p: isSmallScreen ? 1.5 : 2,
-        '&:last-child': { pb: isSmallScreen ? 1.5 : 2 },
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
+      <CardContent 
+        sx={{ 
+          flexGrow: 1, 
+          p: isSmallScreen ? 2 : 3,
+          pb: isSmallScreen ? 2 : 3,
+          '&:last-child': { pb: isSmallScreen ? 2 : 3 },
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            mb: 1,
+            mb: 2,
           }}
         >
           <Typography
@@ -50,60 +62,65 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
             component="h2"
             sx={{
               color: 'text.secondary',
-              fontWeight: 500,
-              fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
+              fontWeight: 600,
+              fontSize: isSmallScreen ? '0.8rem' : '0.9rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
             }}
           >
             {title}
           </Typography>
           {icon && (
-            <Box
+            <Avatar
               sx={{
+                bgcolor: theme.palette.mode === 'dark' 
+                  ? 'rgba(25, 118, 210, 0.12)' 
+                  : 'rgba(25, 118, 210, 0.08)',
                 color: 'primary.main',
-                display: 'flex',
-                alignItems: 'center',
-                '& > svg': {
-                  fontSize: isSmallScreen ? '1.25rem' : '1.5rem',
-                },
+                width: isSmallScreen ? 36 : 40,
+                height: isSmallScreen ? 36 : 40,
+                position: 'absolute',
+                top: isSmallScreen ? -12 : -16,
+                right: isSmallScreen ? 12 : 16,
+                boxShadow: 2,
               }}
             >
               {icon}
-            </Box>
+            </Avatar>
           )}
         </Box>
+        
         <Typography
           variant="h4"
           component="div"
           sx={{
             color: 'text.primary',
-            fontWeight: 600,
-            fontSize: isSmallScreen ? '1.25rem' : '1.5rem',
+            fontWeight: 700,
+            fontSize: isSmallScreen ? '1.5rem' : '1.75rem',
             lineHeight: 1.2,
-            mb: subtitle ? 0.5 : 0,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
+            mb: subtitle ? 1.5 : 0,
+            mt: 1,
           }}
         >
-          {value === 'No country selected' && subtitle !== "Click a country on the map" ? 'Global View' : formatNumber(value)}
+          {typeof displayValue === 'number' ? formatNumber(displayValue) : displayValue}
         </Typography>
+        
         {subtitle && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
-              fontWeight: 400,
-              whiteSpace: 'normal',
-              wordBreak: 'break-word',
-              lineHeight: 1.4,
-              flexGrow: 1,
-              minHeight: 0,
-              display: 'block',
-            }}
-          >
-            {subtitle === "Click a country on the map" ? "Showing all countries, click map to select one" : subtitle}
-          </Typography>
+          <>
+            <Divider sx={{ my: 1.5, opacity: 0.6 }} />
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{
+                fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
+                fontWeight: 400,
+                lineHeight: 1.5,
+                mt: 'auto',
+              }}
+            >
+              {subtitle}
+            </Typography>
+          </>
         )}
       </CardContent>
     </Card>

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Toolbar, Grid, CircularProgress, Paper, useTheme, useMediaQuery, Skeleton, Typography } from '@mui/material';
+import { Box, Toolbar, Grid, CircularProgress, Paper, useTheme, useMediaQuery, Skeleton, Typography, Divider } from '@mui/material';
 import {
   Public as PublicIcon,
   DirectionsCar as DirectionsCarIcon,
@@ -47,12 +47,28 @@ const styles = {
   },
   mapPaper: {
     height: '100%',
-    p: { xs: 1, sm: 2 },
+    p: { xs: 2, sm: 3 },
     display: 'flex',
     flexDirection: 'column',
     position: 'relative',
-    minHeight: '500px',
+    minHeight: '600px',
     transition: 'all 0.3s ease-in-out',
+    borderRadius: 2,
+    overflow: 'hidden',
+    boxShadow: (theme) => theme.shadows[3],
+  },
+  mapHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    mb: 2,
+    px: { xs: 1, sm: 2 },
+  },
+  mapContainer: {
+    flexGrow: 1,
+    position: 'relative',
+    borderRadius: 1,
+    overflow: 'hidden',
   },
   tablePaper: {
     height: '100%',
@@ -60,10 +76,18 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     transition: 'all 0.3s ease-in-out',
+    mt: 3,
   },
   skeleton: {
     height: '100%',
     transform: 'scale(1, 1)',
+  },
+  sectionTitle: {
+    fontSize: { xs: '1.25rem', sm: '1.5rem' },
+    fontWeight: 600,
+    color: 'text.primary',
+    mb: 2,
+    mt: 4,
   },
 };
 
@@ -132,22 +156,22 @@ const MainContent = ({
       return (
         <>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
+            <Paper elevation={3} sx={styles.paper}>
               <InfoCardSkeleton />
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
+            <Paper elevation={3} sx={styles.paper}>
               <InfoCardSkeleton />
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
+            <Paper elevation={3} sx={styles.paper}>
               <InfoCardSkeleton />
             </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Paper elevation={2} sx={styles.paper}>
+            <Paper elevation={3} sx={styles.paper}>
               <InfoCardSkeleton />
             </Paper>
           </Grid>
@@ -158,48 +182,40 @@ const MainContent = ({
     return (
       <>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Selected Country"
-              value={stats.selectedCountry}
-              subtitle={
-                stats.selectedCountryStats
-                  ? `${formatNumber(stats.selectedCountryStats.totalVehicles)} vehicles, ${formatNumber(stats.selectedCountryStats.uniqueBatteries)} battery types`
-                  : "Click a country on the map"
-              }
-              icon={<LocationIcon />}
-            />
-          </Paper>
+          <InfoCard
+            title="Selected Country"
+            value={stats.selectedCountry}
+            subtitle={
+              stats.selectedCountryStats
+                ? `${formatNumber(stats.selectedCountryStats.totalVehicles)} vehicles, ${formatNumber(stats.selectedCountryStats.uniqueBatteries)} battery types`
+                : "Click a country on the map"
+            }
+            icon={<LocationIcon />}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Countries"
-              value={formatNumber(stats.uniqueCountries)}
-              subtitle={`Number of countries in ${selectedFilters.continent || 'all continents'}`}
-              icon={<PublicIcon />}
-            />
-          </Paper>
+          <InfoCard
+            title="Countries"
+            value={formatNumber(stats.uniqueCountries)}
+            subtitle={`Number of countries in ${selectedFilters.continent || 'all continents'}`}
+            icon={<PublicIcon />}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Total Vehicles"
-              value={formatNumber(stats.totalVehicles)}
-              subtitle={selectedFilters.battAlias ? `Vehicles with ${selectedFilters.battAlias} batteries` : "Sum of vehicles in filtered data"}
-              icon={<DirectionsCarIcon />}
-            />
-          </Paper>
+          <InfoCard
+            title="Total Vehicles"
+            value={formatNumber(stats.totalVehicles)}
+            subtitle={selectedFilters.battAlias ? `Vehicles with ${selectedFilters.battAlias} batteries` : "Sum of vehicles in filtered data"}
+            icon={<DirectionsCarIcon />}
+          />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Paper elevation={2} sx={styles.paper}>
-            <InfoCard
-              title="Battery Types"
-              value={formatNumber(stats.uniqueBatteries)}
-              subtitle={selectedFilters.var ? `Batteries measuring ${selectedFilters.var}` : "Unique battery types in filtered data"}
-              icon={<BatteryIcon />}
-            />
-          </Paper>
+          <InfoCard
+            title="Battery Types"
+            value={formatNumber(stats.uniqueBatteries)}
+            subtitle={selectedFilters.var ? `Batteries measuring ${selectedFilters.var}` : "Unique battery types in filtered data"}
+            icon={<BatteryIcon />}
+          />
         </Grid>
       </>
     );
@@ -210,100 +226,81 @@ const MainContent = ({
       <Toolbar /> {/* Spacer for AppBar */}
       
       {/* Info Cards */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         {renderInfoCards()}
       </Grid>
 
-      {/* Map and Table Section */}
-      <Grid container spacing={2}>
-        {/* Map takes full width */}
-        <Grid item xs={12}>
-          <Paper 
-            elevation={2} 
-            sx={{
-              ...styles.mapPaper,
-              height: '600px', // Increased height for better visibility
-            }}
-          >
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, px: 1 }}>
-              <Typography variant="h6" component="h2">
-                {selectedFilters.var ? `${selectedFilters.var} Distribution by Country` : 'World KPI Distribution'}
-              </Typography>
-              {selectedCountryIso && (
-                <Typography variant="subtitle2" color="primary">
-                  {stats.selectedCountry} Selected
-                </Typography>
-              )}
-            </Box>
-            {isMapLoading && (
-              <Box sx={styles.loadingOverlay}>
-                <CircularProgress />
-              </Box>
-            )}
-            {mapError ? (
-              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <ErrorOutlineIcon color="error" />
-                <Typography color="error">{mapError}</Typography>
-              </Box>
-            ) : (
-              <WorldMap
-                data={filteredData}
-                selectedVar={selectedFilters.var}
-                selectedCountryIso={selectedCountryIso}
-                onCountryClick={onCountryClick}
-                onResetSelection={onResetSelection}
-              />
-            )}
-          </Paper>
-        </Grid>
+      {/* Section Title with Divider */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" component="h2" sx={styles.sectionTitle}>
+          {selectedFilters.var ? `${selectedFilters.var} Distribution by Country` : 'World KPI Distribution'}
+        </Typography>
+        <Divider />
+      </Box>
 
-        {/* Table below map */}
-        {showTable && (
-          <Grid item xs={12}>
-            <Paper elevation={2} sx={styles.tablePaper}>
-              <DataTable
-                data={filteredData}
-                selectedVar={selectedFilters.var}
-                selectedCountryIso={selectedCountryIso}
-                onCountryClick={onCountryClick}
-                onResetSelection={onResetSelection}
-              />
-            </Paper>
-          </Grid>
-        )}
-      </Grid>
+      {/* Map Section */}
+      <Paper 
+        elevation={3} 
+        sx={styles.mapPaper}
+      >
+        <Box sx={styles.mapHeader}>
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
+            {selectedCountryIso ? `${stats.selectedCountry} Selected` : 'Global View'}
+          </Typography>
+          {selectedFilters.battAlias && (
+            <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
+              Filter: {selectedFilters.battAlias}
+            </Typography>
+          )}
+        </Box>
+        
+        <Box sx={styles.mapContainer}>
+          {isMapLoading && (
+            <Box sx={styles.loadingOverlay}>
+              <CircularProgress />
+            </Box>
+          )}
+          {mapError ? (
+            <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ErrorOutlineIcon color="error" />
+              <Typography color="error">{mapError}</Typography>
+            </Box>
+          ) : (
+            <WorldMap
+              data={filteredData}
+              selectedVar={selectedFilters.var}
+              selectedCountryIso={selectedCountryIso}
+              onCountryClick={onCountryClick}
+              onResetSelection={onResetSelection}
+            />
+          )}
+        </Box>
+      </Paper>
+
+      {/* Data Table Section */}
+      {showTable && (
+        <>
+          <Typography variant="h5" component="h2" sx={styles.sectionTitle}>
+            Data Details
+          </Typography>
+          <Divider sx={{ mb: 3 }} />
+          <Paper elevation={3} sx={styles.tablePaper}>
+            <DataTable 
+              data={filteredData}
+              isLoading={isLoading}
+              selectedCountryIso={selectedCountryIso}
+            />
+          </Paper>
+        </>
+      )}
     </Box>
   );
 };
 
 MainContent.propTypes = {
-  kpiData: PropTypes.arrayOf(PropTypes.shape({
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    country: PropTypes.string,
-    iso_a3: PropTypes.string,
-    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  })),
-  filteredData: PropTypes.arrayOf(PropTypes.shape({
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    country: PropTypes.string,
-    iso_a3: PropTypes.string,
-    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  })),
-  selectedFilters: PropTypes.shape({
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    country: PropTypes.string,
-  }).isRequired,
+  kpiData: PropTypes.array,
+  filteredData: PropTypes.array,
+  selectedFilters: PropTypes.object.isRequired,
   selectedCountryIso: PropTypes.string,
   onCountryClick: PropTypes.func.isRequired,
   onResetSelection: PropTypes.func.isRequired,
@@ -311,12 +308,6 @@ MainContent.propTypes = {
   isLoading: PropTypes.bool,
   isMapLoading: PropTypes.bool,
   mapError: PropTypes.string,
-};
-
-MainContent.defaultProps = {
-  showTable: true,
-  isLoading: false,
-  isMapLoading: false,
 };
 
 export default MainContent; 

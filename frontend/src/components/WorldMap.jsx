@@ -17,8 +17,8 @@ const WorldMap = ({
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [mapError, setMapError] = useState(null);
 
-  // Calculate responsive height based on screen size
-  const mapHeight = isSmallScreen ? 300 : isMediumScreen ? 400 : 500;
+  // Calculate responsive height based on screen size - increased heights
+  const mapHeight = isSmallScreen ? 400 : isMediumScreen ? 500 : 600;
 
   // Memoize the click handler
   const handleClick = useCallback((event) => {
@@ -96,23 +96,43 @@ const WorldMap = ({
         text,
         customdata,
         hovertemplate: '<b>%{customdata}</b><br>' +
-                      `${selectedVar}: %{z:.2f}<br>` +
+                      `${selectedVar ? selectedVar : 'Value'}: %{z:.2f}<br>` +
                       '<extra></extra>',
         colorscale: 'Viridis',
         showscale: true,
         colorbar: {
-          title: selectedVar,
-          thickness: 15,
-          len: 0.5,
+          title: selectedVar || 'Value',
+          thickness: 20,
+          len: 0.6,
           y: 0.5,
           yanchor: 'middle',
-          outlinewidth: 0,
+          outlinewidth: 1,
+          outlinecolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+          tickfont: {
+            size: 10,
+            color: theme.palette.mode === 'dark' ? '#eee' : '#333'
+          },
+          titlefont: {
+            size: 12,
+            color: theme.palette.mode === 'dark' ? '#fff' : '#000'
+          },
         },
         marker: {
           line: {
-            color: theme.palette.mode === 'dark' ? '#666' : '#999',
+            color: theme.palette.mode === 'dark' ? '#555' : '#ddd',
             width: 0.5,
           },
+          opacity: 0.9,
+        },
+        selectedpoints: selectedCountryIso ? [locations.indexOf(selectedCountryIso)] : [],
+        selected: {
+          marker: {
+            opacity: 1,
+            line: {
+              color: theme.palette.primary.main,
+              width: 2,
+            },
+          }
         },
       };
     } catch (error) {
@@ -120,34 +140,47 @@ const WorldMap = ({
       setMapError('Error preparing map data');
       return null;
     }
-  }, [data, selectedVar, theme.palette.mode]);
+  }, [data, selectedVar, theme.palette.mode, selectedCountryIso, theme.palette.primary.main]);
 
   // Map layout configuration
   const layout = useMemo(() => ({
     geo: {
       showframe: false,
       showcoastlines: true,
+      coastlinecolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+      showocean: true,
+      oceancolor: theme.palette.mode === 'dark' ? '#181818' : '#f8f8f8',
+      showlakes: true,
+      lakecolor: theme.palette.mode === 'dark' ? '#181818' : '#f8f8f8',
+      showrivers: false,
       projection: {
         type: 'mercator',
-        scale: 1.2,
+        scale: 1.1,
       },
-      fitbounds: 'locations',
-      center: { lat: 20, lon: 0 },
-      zoom: 1.2,
+      lonaxis: {
+        showgrid: true,
+        gridwidth: 0.5,
+        gridcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      },
+      lataxis: {
+        showgrid: true,
+        gridwidth: 0.5,
+        gridcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+      },
     },
-    margin: { t: 0, b: 0, l: 0, r: 0 },
+    margin: { t: 5, b: 5, l: 5, r: 5 },
     autosize: true,
     dragmode: 'zoom',
     showlegend: false,
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent',
     modebar: {
-      orientation: 'v',
-      position: 'top-right',
+      orientation: 'h',
       bgcolor: 'transparent',
       color: theme.palette.mode === 'dark' ? '#fff' : '#000',
+      activecolor: theme.palette.primary.main,
     },
-    modebarRemove: ['autoScale2d'],
-    modebarAdd: ['zoom', 'pan', 'resetScale2d'],
-  }), [theme.palette.mode]);
+  }), [theme.palette.mode, theme.palette.primary.main]);
 
   // Map configuration
   const config = {
@@ -155,8 +188,8 @@ const WorldMap = ({
     displayModeBar: true,
     displaylogo: false,
     scrollZoom: true,
-    modeBarButtonsToAdd: ['zoom', 'pan', 'resetScale2d'],
-    modeBarButtonsToRemove: ['autoScale2d'],
+    modeBarButtonsToAdd: ['zoomIn', 'zoomOut', 'resetGeo'],
+    modeBarButtonsToRemove: ['autoScale2d', 'lasso2d', 'select2d', 'toggleSpikelines'],
   };
 
   // Reset error state when data changes
@@ -195,7 +228,30 @@ const WorldMap = ({
   }
 
   return (
-    <Box sx={{ width: '100%', height: '100%' }}>
+    <Box sx={{ 
+      width: '100%', 
+      height: '100%',
+      position: 'relative',
+      borderRadius: 1,
+      overflow: 'hidden'
+    }}>
+      {isMapLoading && (
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255,255,255,0.7)',
+          zIndex: 2,
+          backdropFilter: 'blur(2px)',
+        }}>
+          <CircularProgress size={40} />
+        </Box>
+      )}
       <Plot
         data={[mapData]}
         layout={layout}
@@ -203,7 +259,11 @@ const WorldMap = ({
         onClick={handleClick}
         onInitialized={handleMapInitialized}
         onError={handleMapError}
-        style={{ width: '100%', height: '100%' }}
+        style={{ 
+          width: '100%', 
+          height: mapHeight, 
+          minHeight: '100%'
+        }}
         useResizeHandler={true}
       />
     </Box>
@@ -214,7 +274,7 @@ WorldMap.propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
     iso_a3: PropTypes.string,
     country: PropTypes.string,
-    val: PropTypes.number,
+    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     var: PropTypes.string,
   })),
   selectedVar: PropTypes.string,
