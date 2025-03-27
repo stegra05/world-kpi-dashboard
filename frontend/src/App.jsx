@@ -13,7 +13,12 @@ import {
   Stack,
   Backdrop,
   Snackbar,
-  AlertTitle
+  AlertTitle,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import {
   Brightness4 as Brightness4Icon,
@@ -23,6 +28,9 @@ import {
   Refresh as RefreshIcon,
   ErrorOutline as ErrorOutlineIcon,
   Close as CloseIcon,
+  FileDownload as FileDownloadIcon,
+  HelpOutline as HelpOutlineIcon,
+  InfoOutlined as InfoOutlinedIcon,
 } from '@mui/icons-material';
 import { useTheme } from './context/ThemeContext';
 import Sidebar from './components/Sidebar';
@@ -152,6 +160,8 @@ function App() {
   } = useKpiData();
   const { toggleDarkMode, isDarkMode } = useTheme();
   const [showError, setShowError] = useState(false);
+  const [openHelpDialog, setOpenHelpDialog] = useState(false);
+  const [openInfoDialog, setOpenInfoDialog] = useState(false);
   
   // Centralized filter state
   const [selectedFilters, setSelectedFilters] = useState({
@@ -250,38 +260,85 @@ function App() {
     <Box sx={styles.root}>
       <AppBar position="fixed" sx={styles.appBar}>
         <Toolbar>
-          <Typography variant="h6" noWrap component="div" sx={{ mr: 3 }}>
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ flexGrow: 1 }}
+          >
             World KPI Dashboard
           </Typography>
-          <Box sx={{ 
-            flexGrow: 1, 
-            display: 'flex', 
-            alignItems: 'center',
-            overflow: 'hidden',
-          }}>
-            <FilterChips 
-              selectedFilters={selectedFilters} 
-              onResetSelection={(newFilters) => {
-                const updatedFilters = { ...selectedFilters };
-                Object.keys(newFilters).forEach(key => {
-                  if (newFilters[key] === '') {
-                    updatedFilters[key] = '';
-                  }
-                });
-                handleResetSelection(updatedFilters);
+          
+          <Tooltip title="Export filtered data">
+            <IconButton
+              color="inherit"
+              onClick={() => {
+                // Export filtered data as CSV
+                if (filteredData.length > 0) {
+                  const header = Object.keys(filteredData[0]).join(',');
+                  const csv = [
+                    header,
+                    ...filteredData.map(row => Object.values(row).map(val => 
+                      typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val
+                    ).join(','))
+                  ].join('\n');
+                  
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.setAttribute('href', url);
+                  link.setAttribute('download', 'world_kpi_filtered_data.csv');
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }
               }}
-            />
-          </Box>
-          <IconButton 
-            onClick={() => setShowTable(!showTable)} 
-            color="inherit"
-            sx={{ mr: 1 }}
-          >
-            {showTable ? <TableChartIcon /> : <TableChartOutlinedIcon />}
-          </IconButton>
-          <IconButton onClick={toggleDarkMode} color="inherit">
-            {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
+              disabled={!filteredData.length}
+              sx={{ mr: 1 }}
+            >
+              <FileDownloadIcon />
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title="Data Source Information">
+            <IconButton
+              color="inherit"
+              onClick={() => setOpenInfoDialog(true)}
+              sx={{ mr: 1 }}
+            >
+              <InfoOutlinedIcon />
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title="Help">
+            <IconButton
+              color="inherit"
+              onClick={() => setOpenHelpDialog(true)}
+              sx={{ mr: 1 }}
+            >
+              <HelpOutlineIcon />
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title={showTable ? "Hide data table" : "Show data table"}>
+            <IconButton 
+              color="inherit" 
+              onClick={() => setShowTable(!showTable)}
+              sx={{ mr: 1 }}
+            >
+              {showTable ? <TableChartIcon /> : <TableChartOutlinedIcon />}
+            </IconButton>
+          </Tooltip>
+          
+          <Tooltip title={isDarkMode ? "Light mode" : "Dark mode"}>
+            <IconButton 
+              onClick={toggleDarkMode} 
+              color="inherit"
+            >
+              {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -341,6 +398,118 @@ function App() {
           {error?.detail}
         </Alert>
       </Snackbar>
+
+      {/* Help Dialog */}
+      <Dialog 
+        open={openHelpDialog} 
+        onClose={() => setOpenHelpDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          How to Use the Dashboard
+          <IconButton
+            aria-label="close"
+            onClick={() => setOpenHelpDialog(false)}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="h6" gutterBottom>Map Navigation</Typography>
+          <Typography paragraph>
+            The choropleth map displays KPI values across countries. Darker colors represent lower values, while brighter colors indicate higher values. 
+          </Typography>
+          <Typography paragraph>
+            <strong>Interacting with the map:</strong>
+            <ul>
+              <li>Click on a country to select it and view its details</li>
+              <li>Click on the map background to reset selection</li>
+              <li>Hover over a country to see its value</li>
+              <li>Use the buttons in the top-right corner of the map to zoom, pan, and reset the view</li>
+            </ul>
+          </Typography>
+          
+          <Typography variant="h6" gutterBottom>Filters</Typography>
+          <Typography paragraph>
+            Use the sidebar filters to narrow down the data:
+            <ul>
+              <li><strong>Battery Alias:</strong> Filter by battery type</li>
+              <li><strong>Variable:</strong> Select the KPI variable to display</li>
+              <li><strong>Continent:</strong> Filter by geographical region</li>
+              <li><strong>Climate:</strong> Filter by climate zone</li>
+              <li><strong>Year Range:</strong> Filter by time period (if available)</li>
+            </ul>
+          </Typography>
+          
+          <Typography variant="h6" gutterBottom>Data Table</Typography>
+          <Typography paragraph>
+            The data table shows detailed records based on your selected filters:
+            <ul>
+              <li>Click column headers to sort the data</li>
+              <li>Use the search box to find specific values</li>
+              <li>Adjust the number of rows displayed using the pagination controls</li>
+              <li>Export the filtered table data using the download button</li>
+            </ul>
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenHelpDialog(false)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Info Dialog */}
+      <Dialog 
+        open={openInfoDialog} 
+        onClose={() => setOpenInfoDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          About World KPI Dashboard
+          <IconButton
+            aria-label="close"
+            onClick={() => setOpenInfoDialog(false)}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="h6" gutterBottom>Data Source</Typography>
+          <Typography paragraph>
+            The dashboard visualizes data from the <code>world_kpi_anonym.csv</code> dataset. This dataset contains key performance indicators (KPIs) for various battery types across different countries.
+          </Typography>
+          
+          <Typography variant="h6" gutterBottom>Key Metrics</Typography>
+          <Typography paragraph>
+            <ul>
+              <li><strong>val:</strong> The main KPI value being measured for the given variable</li>
+              <li><strong>cnt_vhcl:</strong> Number of vehicles associated with each data point</li>
+              <li><strong>battAlias:</strong> Anonymized battery type identifier</li>
+              <li><strong>var:</strong> Variable being measured (e.g., performance, efficiency)</li>
+            </ul>
+          </Typography>
+          
+          <Typography variant="h6" gutterBottom>Methodology</Typography>
+          <Typography paragraph>
+            The choropleth map visualizes the average KPI values for each country based on the selected filters. When multiple data points exist for a country, the values are averaged. Countries with no data for the selected filters are shown in white.
+          </Typography>
+          
+          <Typography variant="h6" gutterBottom>Data Updates</Typography>
+          <Typography paragraph>
+            This dashboard pulls data from a static CSV file. For the most up-to-date information, contact the data management team.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenInfoDialog(false)} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

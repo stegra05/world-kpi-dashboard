@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Chip, Stack } from '@mui/material';
+import { Box, Chip, Typography, Paper, useTheme, Button, Tooltip } from '@mui/material';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
 import {
   BatteryChargingFull as BatteryIcon,
   Functions as FunctionsIcon,
@@ -10,118 +12,127 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 
-const FilterChips = ({ selectedFilters, onResetSelection }) => {
-  const filterConfig = [
-    {
-      key: 'battAlias',
-      label: 'Battery',
-      icon: <BatteryIcon />,
-      value: selectedFilters.battAlias,
-    },
-    {
-      key: 'var',
-      label: 'Variable',
-      icon: <FunctionsIcon />,
-      value: selectedFilters.var,
-    },
-    {
-      key: 'continent',
-      label: 'Continent',
-      icon: <ContinentIcon />,
-      value: selectedFilters.continent,
-    },
-    {
-      key: 'climate',
-      label: 'Climate',
-      icon: <ClimateIcon />,
-      value: selectedFilters.climate,
-    },
-    {
-      key: 'model_series',
-      label: 'Model Series',
-      icon: <ModelSeriesIcon />,
-      value: selectedFilters.model_series,
-    },
-  ];
-
-  const activeFilters = filterConfig.filter(filter => filter.value);
-
+const FilterChips = ({ selectedFilters, onFiltersChange, onFilterClear }) => {
+  const theme = useTheme();
+  
+  // Create array of active filters for rendering chips
+  const activeFilters = useMemo(() => {
+    return Object.entries(selectedFilters)
+      .filter(([_, value]) => value !== '')
+      .map(([key, value]) => ({ key, value }));
+  }, [selectedFilters]);
+  
+  // Handle removing a single filter
+  const handleRemoveFilter = (key) => {
+    onFiltersChange({
+      ...selectedFilters,
+      [key]: ''
+    });
+  };
+  
+  // Handle clearing all filters
+  const handleClearAll = () => {
+    if (typeof onFilterClear === 'function') {
+      onFilterClear();
+    } else {
+      // Fallback if onFilterClear not provided
+      const resetFilters = Object.keys(selectedFilters).reduce(
+        (acc, key) => ({ ...acc, [key]: '' }), {}
+      );
+      onFiltersChange(resetFilters);
+    }
+  };
+  
+  // If no active filters, don't render the component
   if (activeFilters.length === 0) {
     return null;
   }
-
-  const handleDelete = (filterKey) => {
-    onResetSelection({
-      ...selectedFilters,
-      [filterKey]: ''
-    });
+  
+  // Helper to get a friendly display name for the filter type
+  const getFilterName = (key) => {
+    const displayNames = {
+      battAlias: 'Battery',
+      var: 'Variable',
+      continent: 'Continent',
+      climate: 'Climate',
+      country: 'Country'
+    };
+    return displayNames[key] || key;
   };
 
   return (
-    <Box sx={{ 
-      display: 'flex',
-      alignItems: 'center',
-      overflow: 'auto',
-      maxWidth: '100%',
-      '&::-webkit-scrollbar': {
-        height: '4px',
-      },
-      '&::-webkit-scrollbar-track': {
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderRadius: '2px',
-      },
-    }}>
-      <Stack 
-        direction="row" 
-        spacing={1} 
-        sx={{ 
-          py: 0.5,
-          flexWrap: 'nowrap',
-        }}
-      >
-        {activeFilters.map(filter => (
-          <Chip
-            key={filter.key}
-            icon={filter.icon}
-            label={`${filter.label}: ${filter.value}`}
-            size="small"
-            onDelete={() => handleDelete(filter.key)}
-            deleteIcon={<CloseIcon />}
-            sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              color: 'white',
-              '& .MuiChip-icon': {
-                color: 'inherit',
-              },
-              '& .MuiChip-deleteIcon': {
-                color: 'inherit',
-                '&:hover': {
-                  color: 'rgba(255, 0, 0, 0.8)',
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        mb: 2, 
+        p: 1.5, 
+        backgroundColor: theme.palette.mode === 'dark' 
+          ? 'rgba(66, 66, 66, 0.3)' 
+          : 'rgba(240, 240, 240, 0.5)',
+        borderRadius: 1,
+        border: '1px solid',
+        borderColor: theme.palette.mode === 'dark' 
+          ? 'rgba(255, 255, 255, 0.12)' 
+          : 'rgba(0, 0, 0, 0.08)',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          mr: 1,
+          color: 'primary.main',
+          minWidth: 'fit-content'
+        }}>
+          <FilterAltIcon fontSize="small" sx={{ mr: 0.5 }} />
+          <Typography variant="body2" fontWeight="medium">
+            Active Filters:
+          </Typography>
+        </Box>
+        
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, flex: 1 }}>
+          {activeFilters.map(({ key, value }) => (
+            <Chip
+              key={key}
+              label={`${getFilterName(key)}: ${value}`}
+              onDelete={() => handleRemoveFilter(key)}
+              color="primary"
+              variant="outlined"
+              size="small"
+              sx={{ 
+                fontWeight: 500,
+                '& .MuiChip-deleteIcon': {
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    color: theme.palette.error.main,
+                  },
                 },
-              },
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.25)',
-              },
-            }}
-          />
-        ))}
-      </Stack>
-    </Box>
+              }}
+            />
+          ))}
+        </Box>
+        
+        <Tooltip title="Clear all filters">
+          <Button 
+            size="small"
+            color="primary"
+            onClick={handleClearAll}
+            startIcon={<ClearAllIcon />}
+            variant="outlined"
+            sx={{ ml: 'auto', minWidth: 'fit-content' }}
+          >
+            Clear All
+          </Button>
+        </Tooltip>
+      </Box>
+    </Paper>
   );
 };
 
 FilterChips.propTypes = {
-  selectedFilters: PropTypes.shape({
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    model_series: PropTypes.string,
-  }).isRequired,
-  onResetSelection: PropTypes.func.isRequired,
+  selectedFilters: PropTypes.object.isRequired,
+  onFiltersChange: PropTypes.func.isRequired,
+  onFilterClear: PropTypes.func,
 };
 
 export default FilterChips; 

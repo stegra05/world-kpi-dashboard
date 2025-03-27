@@ -85,7 +85,7 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
             textOverflow: 'ellipsis',
           }}
         >
-          {formatNumber(value)}
+          {value === 'No country selected' && subtitle !== "Click a country on the map" ? 'Global View' : formatNumber(value)}
         </Typography>
         {subtitle && (
           <Typography
@@ -102,7 +102,7 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
               display: 'block',
             }}
           >
-            {subtitle}
+            {subtitle === "Click a country on the map" ? "Showing all countries, click map to select one" : subtitle}
           </Typography>
         )}
       </CardContent>

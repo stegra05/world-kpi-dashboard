@@ -1,207 +1,270 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { DataGrid } from '@mui/x-data-grid';
-import { useTheme, CircularProgress, Alert, Box, Typography, Tooltip } from '@mui/material';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import {
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  TablePagination,
+  Paper,
+  Typography,
+  LinearProgress,
+  InputAdornment,
+  TextField,
+  Chip,
+  IconButton,
+  Tooltip,
+  Card,
+  CardHeader,
+  CardContent,
+  useTheme,
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import DownloadIcon from '@mui/icons-material/Download';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import { visuallyHidden } from '@mui/utils';
+import { formatNumber } from '../utils/formatUtils';
 
-const DataTable = ({ 
-  data = [], 
-  isLoading = false, 
-  selectedCountryIso = null,
-  selectedVar = '',
-  variableDescriptions = {}
-}) => {
+// Define column configuration
+const columns = [
+  { id: 'iso_a3', label: 'ISO', minWidth: 60, align: 'left' },
+  { id: 'country', label: 'Country', minWidth: 120, align: 'left' },
+  { id: 'continent', label: 'Continent', minWidth: 100, align: 'left' },
+  { id: 'battAlias', label: 'Battery Type', minWidth: 120, align: 'left' },
+  { id: 'var', label: 'Variable', minWidth: 100, align: 'left' },
+  { id: 'val', label: 'Value', minWidth: 80, align: 'right', format: (value) => formatNumber(value) },
+  { id: 'cnt_vhcl', label: 'Vehicles', minWidth: 80, align: 'right', format: (value) => formatNumber(value) },
+  { id: 'climate', label: 'Climate', minWidth: 100, align: 'left' },
+];
+
+function DataTable({ data = [], isLoading = false, selectedFilters = {} }) {
   const theme = useTheme();
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [order, setOrder] = useState('desc');
+  const [orderBy, setOrderBy] = useState('cnt_vhcl');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Define columns configuration
-  const columns = useMemo(() => [
-    { 
-      field: 'country', 
-      headerName: 'Country', 
-      flex: 1.2,
-      minWidth: 150,
-      renderCell: (params) => (
-        <Tooltip title={params.value}>
-          <span>{params.value}</span>
-        </Tooltip>
-      )
-    },
-    { 
-      field: 'battAlias', 
-      headerName: 'Battery Type', 
-      flex: 1,
-      minWidth: 130,
-      renderCell: (params) => (
-        <Tooltip title={params.value}>
-          <span>{params.value}</span>
-        </Tooltip>
-      )
-    },
-    { 
-      field: 'var', 
-      headerName: selectedVar && variableDescriptions[selectedVar] 
-        ? variableDescriptions[selectedVar] 
-        : 'Variable',
-      flex: 0.8,
-      minWidth: 120 
-    },
-    { 
-      field: 'val', 
-      headerName: 'Value', 
-      flex: 0.8,
-      minWidth: 100,
-      type: 'number',
-      valueFormatter: (params) => {
-        const value = Number(params.value);
-        return isNaN(value) ? params.value : value.toFixed(2);
-      }
-    },
-    { 
-      field: 'cnt_vhcl', 
-      headerName: 'Vehicles', 
-      flex: 1,
-      minWidth: 120,
-      type: 'number',
-      valueFormatter: (params) => {
-        const value = Number(params.value);
-        return isNaN(value) ? params.value : value.toLocaleString();
-      }
-    },
-    { 
-      field: 'continent', 
-      headerName: 'Continent', 
-      flex: 1,
-      minWidth: 130,
-      renderCell: (params) => (
-        <Tooltip title={params.value}>
-          <span>{params.value}</span>
-        </Tooltip>
-      )
-    },
-    { 
-      field: 'climate', 
-      headerName: 'Climate', 
-      flex: 1,
-      minWidth: 120,
-      renderCell: (params) => (
-        <Tooltip title={params.value}>
-          <span>{params.value}</span>
-        </Tooltip>
-      )
+  // Apply filtering and sorting to data
+  const filteredData = useMemo(() => {
+    if (!data || !Array.isArray(data)) return [];
+    
+    let filteredData = [...data];
+    
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredData = filteredData.filter(row => 
+        Object.values(row).some(value => 
+          value && value.toString().toLowerCase().includes(searchLower)
+        )
+      );
     }
-  ], [selectedVar, variableDescriptions]);
+    
+    // Apply column sorting
+    filteredData.sort((a, b) => {
+      const aValue = a[orderBy];
+      const bValue = b[orderBy];
+      
+      // Handle numeric values
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return order === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      // Handle string values
+      const aString = aValue ? aValue.toString().toLowerCase() : '';
+      const bString = bValue ? bValue.toString().toLowerCase() : '';
+      
+      return order === 'asc' 
+        ? aString.localeCompare(bString)
+        : bString.localeCompare(aString);
+    });
+    
+    return filteredData;
+  }, [data, searchTerm, order, orderBy]);
 
-  // Add unique IDs to rows and validate data
-  const rows = useMemo(() => {
-    if (!data || data.length === 0) return [];
+  // Get active filters as array for display
+  const activeFilters = useMemo(() => {
+    return Object.entries(selectedFilters)
+      .filter(([_, value]) => value !== '')
+      .map(([key, value]) => ({ key, value }));
+  }, [selectedFilters]);
 
-    return data
-      .filter(item => !selectedCountryIso || item.iso_a3 === selectedCountryIso)
-      .map((item, index) => ({
-        id: `${item.iso_a3}-${item.battAlias}-${item.var}-${index}`,
-        ...item
-      }))
-      .filter(row => {
-        // Validate that all required fields have values
-        return row.country && row.battAlias && row.var && 
-               (row.val !== undefined && row.val !== null) && 
-               (row.cnt_vhcl !== undefined && row.cnt_vhcl !== null);
-      });
-  }, [data, selectedCountryIso]);
+  // Event handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
 
-  // Render empty state
-  if (!isLoading && (!data || data.length === 0)) {
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === 'asc';
+    setOrder(isAsc ? 'desc' : 'asc');
+    setOrderBy(property);
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0);
+  };
+
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) return;
+    
+    const header = columns.map(column => column.label).join(',');
+    const rows = filteredData.map(row => 
+      columns.map(column => {
+        const value = row[column.id];
+        // Format strings with commas in quotes
+        return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
+      }).join(',')
+    );
+    
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'world_kpi_table_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Display placeholder if no data
+  if (!data || data.length === 0) {
     return (
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <ErrorOutlineIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+      <Paper sx={{ p: 3, textAlign: 'center' }}>
         <Typography variant="body1" color="text.secondary">
-          No data available
+          No data available. Please adjust your filters.
         </Typography>
-      </Box>
+      </Paper>
     );
   }
 
   return (
-    <Box sx={{ 
-      position: 'relative',
-      height: 600,
-      width: '100%',
-      bgcolor: 'background.paper',
-      borderRadius: 1,
-      overflow: 'hidden',
-      boxShadow: 1
-    }}>
-      {isLoading ? (
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          zIndex: 1,
-        }}>
-          <CircularProgress />
-        </Box>
-      ) : null}
-      <DataGrid
-        rows={rows}
-        columns={columns}
-        pageSize={10}
-        rowsPerPageOptions={[10, 25, 50]}
-        disableSelectionOnClick
-        density="comfortable"
-        sx={{
-          border: 'none',
-          '& .MuiDataGrid-cell': {
-            borderColor: theme.palette.divider,
-            py: 1,
-          },
-          '& .MuiDataGrid-columnHeaders': {
-            bgcolor: theme.palette.background.default,
-            borderBottom: `1px solid ${theme.palette.divider}`,
-            '& .MuiDataGrid-columnHeader': {
-              py: 1.5,
-              '&:focus': {
-                outline: 'none',
-              },
-            },
-          },
-          '& .MuiDataGrid-row': {
-            '&:hover': {
-              bgcolor: theme.palette.action.hover,
-            },
-            '&.Mui-selected': {
-              bgcolor: theme.palette.action.selected,
-              '&:hover': {
-                bgcolor: theme.palette.action.selected,
-              },
-            },
-          },
-        }}
+    <Card elevation={1} sx={{ width: '100%', overflow: 'hidden' }}>
+      <CardHeader
+        title={
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">Data Table</Typography>
+            <Box>
+              <Tooltip title="Export as CSV">
+                <IconButton onClick={handleExportCSV} disabled={!filteredData.length}>
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Box>
+        }
+        action={
+          <TextField
+            size="small"
+            variant="outlined"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            sx={{ width: 200 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+        }
+        sx={{ pb: 0 }}
       />
-    </Box>
+      
+      {activeFilters.length > 0 && (
+        <Box sx={{ px: 2, py: 1, display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+          <FilterListIcon fontSize="small" color="primary" sx={{ mr: 1 }} />
+          {activeFilters.map(({ key, value }) => (
+            <Chip
+              key={key}
+              label={`${key}: ${value}`}
+              size="small"
+              variant="outlined"
+              color="primary"
+            />
+          ))}
+        </Box>
+      )}
+      
+      <CardContent sx={{ p: 0, pt: 1, '&:last-child': { pb: 0 } }}>
+        {isLoading && <LinearProgress />}
+        <TableContainer sx={{ maxHeight: 440 }}>
+          <Table stickyHeader aria-label="kpi data table" size="small">
+            <TableHead>
+              <TableRow>
+                {columns.map((column) => (
+                  <TableCell
+                    key={column.id}
+                    align={column.align}
+                    style={{ minWidth: column.minWidth }}
+                    sortDirection={orderBy === column.id ? order : false}
+                  >
+                    <TableSortLabel
+                      active={orderBy === column.id}
+                      direction={orderBy === column.id ? order : 'asc'}
+                      onClick={() => handleRequestSort(column.id)}
+                    >
+                      {column.label}
+                      {orderBy === column.id ? (
+                        <Box component="span" sx={visuallyHidden}>
+                          {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
+                        </Box>
+                      ) : null}
+                    </TableSortLabel>
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredData
+                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                .map((row, index) => (
+                  <TableRow hover role="checkbox" tabIndex={-1} key={index}>
+                    {columns.map((column) => {
+                      const value = row[column.id];
+                      return (
+                        <TableCell key={column.id} align={column.align}>
+                          {column.format && typeof value === 'number' ? column.format(value) : value}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          component="div"
+          count={filteredData.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </CardContent>
+    </Card>
   );
-};
+}
 
 DataTable.propTypes = {
-  data: PropTypes.arrayOf(PropTypes.shape({
-    country: PropTypes.string,
-    battAlias: PropTypes.string,
-    var: PropTypes.string,
-    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    continent: PropTypes.string,
-    climate: PropTypes.string,
-    iso_a3: PropTypes.string,
-  })),
+  data: PropTypes.arrayOf(PropTypes.object),
   isLoading: PropTypes.bool,
-  selectedCountryIso: PropTypes.string,
-  selectedVar: PropTypes.string,
-  variableDescriptions: PropTypes.objectOf(PropTypes.string),
+  selectedFilters: PropTypes.object,
 };
 
-export default DataTable; 
+export default DataTable;

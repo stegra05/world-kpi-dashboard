@@ -7,6 +7,7 @@ import {
   BatteryChargingFull as BatteryIcon,
   LocationOn as LocationIcon,
   ErrorOutline as ErrorOutlineIcon,
+  FilterAlt as FilterAltIcon,
 } from '@mui/icons-material';
 import WorldMap from './WorldMap';
 import InfoCard from './InfoCard';
@@ -175,7 +176,7 @@ const MainContent = ({
             <InfoCard
               title="Countries"
               value={formatNumber(stats.uniqueCountries)}
-              subtitle="Number of countries in filtered data"
+              subtitle={`Number of countries in ${selectedFilters.continent || 'all continents'}`}
               icon={<PublicIcon />}
             />
           </Paper>
@@ -185,7 +186,7 @@ const MainContent = ({
             <InfoCard
               title="Total Vehicles"
               value={formatNumber(stats.totalVehicles)}
-              subtitle="Sum of vehicles in filtered data"
+              subtitle={selectedFilters.battAlias ? `Vehicles with ${selectedFilters.battAlias} batteries` : "Sum of vehicles in filtered data"}
               icon={<DirectionsCarIcon />}
             />
           </Paper>
@@ -195,7 +196,7 @@ const MainContent = ({
             <InfoCard
               title="Battery Types"
               value={formatNumber(stats.uniqueBatteries)}
-              subtitle="Unique battery types in filtered data"
+              subtitle={selectedFilters.var ? `Batteries measuring ${selectedFilters.var}` : "Unique battery types in filtered data"}
               icon={<BatteryIcon />}
             />
           </Paper>
@@ -224,6 +225,16 @@ const MainContent = ({
               height: '600px', // Increased height for better visibility
             }}
           >
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, px: 1 }}>
+              <Typography variant="h6" component="h2">
+                {selectedFilters.var ? `${selectedFilters.var} Distribution by Country` : 'World KPI Distribution'}
+              </Typography>
+              {selectedCountryIso && (
+                <Typography variant="subtitle2" color="primary">
+                  {stats.selectedCountry} Selected
+                </Typography>
+              )}
+            </Box>
             {isMapLoading && (
               <Box sx={styles.loadingOverlay}>
                 <CircularProgress />
