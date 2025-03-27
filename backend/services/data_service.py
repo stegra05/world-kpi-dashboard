@@ -81,9 +81,46 @@ class DataService:
             logger.debug(f"Dataframe columns: {self.df.columns.tolist()}")
             logger.debug(f"Sample data: {self.df.head(1).to_dict(orient='records')}")
             
-            result = self.df.to_dict(orient='records')
-            logger.debug(f"Conversion complete, returning {len(result)} records")
-            return result
+            # Convert to records and validate each record
+            records = self.df.to_dict(orient='records')
+            validated_records = []
+            
+            for idx, record in enumerate(records):
+                try:
+                    # Log the raw record for debugging
+                    if idx == 0:  # Log only first record to avoid spam
+                        logger.debug(f"Raw record: {record}")
+                        logger.debug(f"Record types: {dict((k, type(v)) for k, v in record.items())}")
+                    
+                    # Create KPIData instance to validate the record
+                    kpi_data = KPIData(
+                        iso_a3=str(record['iso_a3']),  # Ensure string
+                        country=str(record['country']),  # Ensure string
+                        battAlias=str(record['battAlias']),  # Ensure string
+                        var=str(record['var']),  # Ensure string
+                        val=float(record['val']),  # Ensure float
+                        cnt_vhcl=int(record.get('cnt_vhcl', 0)),  # Ensure int
+                        continent=str(record.get('continent', '')),  # Ensure string
+                        climate=str(record.get('climate', ''))  # Ensure string
+                    )
+                    validated_record = kpi_data.model_dump()
+                    
+                    # Log the validated record for debugging
+                    if idx == 0:  # Log only first record to avoid spam
+                        logger.debug(f"Validated record: {validated_record}")
+                        logger.debug(f"Validated record types: {dict((k, type(v)) for k, v in validated_record.items())}")
+                    
+                    validated_records.append(validated_record)
+                except Exception as e:
+                    logger.warning(f"Skipping invalid record at index {idx}: {record}. Error: {str(e)}")
+                    continue
+            
+            if not validated_records:
+                raise ValueError("No valid records found after validation")
+            
+            logger.debug(f"Conversion complete, returning {len(validated_records)} records")
+            logger.debug(f"First validated record: {validated_records[0]}")
+            return validated_records
         except Exception as e:
             logger = logging.getLogger(__name__)
             logger.error(f"Error converting data to records: {str(e)}")

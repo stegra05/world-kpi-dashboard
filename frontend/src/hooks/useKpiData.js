@@ -5,8 +5,8 @@ const TIMEOUT_MS = 5000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 
-// Get API URL from environment variable
-const API_URL = import.meta.env.VITE_API_URL;
+// Use the proxy URL instead of the direct backend URL
+const API_URL = '/api';
 
 const getErrorMessage = (error) => {
   if (error.response) {
@@ -43,37 +43,71 @@ export const useKpiData = () => {
 
   const fetchDataWithRetry = async (retryCount = 0) => {
     try {
-      const response = await axios.get(`${API_URL}/api/v1/data`, {
+      console.log('Fetching data from:', `${API_URL}/data`);  // Add debug log
+      const response = await axios.get(`${API_URL}/data`, {
         timeout: TIMEOUT_MS,
         validateStatus: status => status === 200
       });
 
       // Basic data validation
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+
       if (!Array.isArray(response.data)) {
+        console.error('Invalid response data:', response.data);
         throw new Error('Invalid data format: Expected an array');
       }
 
-      const isValidData = response.data.every(item => 
-        item && 
-        typeof item === 'object' &&
-        'iso_a3' in item &&
-        'var' in item &&
-        'battAlias' in item &&
-        'val' in item
-        // Note: climate field is optional
-      );
-
-      if (!isValidData) {
-        throw new Error('Invalid data format: Missing required fields');
+      if (response.data.length === 0) {
+        throw new Error('No data available');
       }
 
-      // Add climate field if not present in any item
-      const dataWithClimate = response.data.map(item => {
-        if (!('climate' in item)) {
-          return { ...item, climate: null };
+      // Log first record for debugging
+      console.debug('First record:', response.data[0]);
+
+      const isValidData = response.data.every(item => {
+        const isValid = item && 
+          typeof item === 'object' &&
+          typeof item.iso_a3 === 'string' &&
+          item.iso_a3.length > 0 &&
+          item.iso_a3.length <= 3 &&
+          typeof item.country === 'string' &&
+          typeof item.battAlias === 'string' &&
+          typeof item.var === 'string' &&
+          !isNaN(parseFloat(item.val));  // More lenient number validation
+
+        if (!isValid && item) {
+          console.warn('Invalid item:', item);
+          console.warn('Validation details:', {
+            hasIso: typeof item.iso_a3 === 'string',
+            isoLength: item.iso_a3?.length,
+            hasCountry: typeof item.country === 'string',
+            hasBattAlias: typeof item.battAlias === 'string',
+            hasVar: typeof item.var === 'string',
+            hasValidVal: !isNaN(parseFloat(item.val))
+          });
         }
-        return item;
+        return isValid;
       });
+
+      if (!isValidData) {
+        console.error('Invalid data structure:', response.data[0]);
+        throw new Error('Invalid data format: Missing or invalid required fields');
+      }
+
+      // Add climate field if not present in any item and ensure proper types
+      const dataWithClimate = response.data.map(item => ({
+        ...item,
+        iso_a3: String(item.iso_a3 || '').slice(0, 3),
+        country: String(item.country || ''),
+        battAlias: String(item.battAlias || ''),
+        var: String(item.var || ''),
+        val: parseFloat(item.val),
+        cnt_vhcl: parseInt(item.cnt_vhcl || 0, 10),
+        continent: String(item.continent || ''),
+        climate: String(item.climate || '')
+      }));
 
       setKpiData(dataWithClimate);
       setIsLoading(false);

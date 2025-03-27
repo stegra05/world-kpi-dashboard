@@ -11,7 +11,7 @@ class Continent(str, Enum):
     OCEANIA = "Oceania"
 
 class KPIData(BaseModel):
-    iso_a3: str = Field(..., min_length=3, max_length=3)
+    iso_a3: str = Field(..., min_length=1, max_length=3)
     country: str
     battAlias: str
     var: str
@@ -23,6 +23,18 @@ class KPIData(BaseModel):
     class Config:
         from_attributes = True
         arbitrary_types_allowed = True  # Allow more flexible type handling
+        json_schema_extra = {
+            "example": {
+                "iso_a3": "DEU",
+                "country": "Germany",
+                "battAlias": "Batt_11",
+                "var": "variable_1",
+                "val": 123.45,
+                "cnt_vhcl": 100,
+                "continent": "Europe",
+                "climate": "normal"
+            }
+        }
 
 class MetricsResponse(BaseModel):
     metrics: List[str]
