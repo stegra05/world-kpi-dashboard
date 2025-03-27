@@ -268,8 +268,12 @@ async def get_filtered_data(
         HTTPException: If filtered data cannot be retrieved or invalid parameters
     """
     try:
+        # Log request parameters
+        logger.info(f"Filter request - metric: '{metric}', batt_alias: '{batt_alias}', continent: '{continent}', climate: '{climate}'")
+        
         # Validate input parameters
         if not metric or not batt_alias:
+            logger.warning(f"Missing required filter parameters: metric='{metric}', batt_alias='{batt_alias}'")
             raise HTTPException(
                 status_code=400,
                 detail="Both metric and batt_alias parameters are required"
@@ -277,6 +281,11 @@ async def get_filtered_data(
         
         # Get filtered data - continent will be passed as string directly
         filtered_data = data_service.get_data_by_filters(metric, batt_alias, continent, climate)
+        
+        # Log response size
+        logger.info(f"Filtered data response - returned {len(filtered_data)} records")
+        if filtered_data and len(filtered_data) > 0:
+            logger.debug(f"Sample filtered record: {filtered_data[0]}")
         
         return FilteredDataResponse(
             data=filtered_data,

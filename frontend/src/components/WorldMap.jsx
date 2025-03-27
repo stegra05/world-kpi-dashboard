@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Plot from 'react-plotly.js';
 import { Box, useTheme, useMediaQuery, Typography, Paper, CircularProgress, Alert } from '@mui/material';
@@ -16,6 +16,7 @@ const WorldMap = ({
   const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'));
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [mapError, setMapError] = useState(null);
+  const plotRef = useRef(null);
 
   // Calculate responsive height based on screen size - increased heights
   const mapHeight = isSmallScreen ? 400 : isMediumScreen ? 500 : 600;
@@ -35,6 +36,7 @@ const WorldMap = ({
 
   // Handle map initialization
   const handleMapInitialized = useCallback(() => {
+    console.log('Map initialized successfully');
     setIsMapLoading(false);
     setMapError(null);
   }, []);
@@ -53,21 +55,40 @@ const WorldMap = ({
     }
   }, [isLoading]);
 
+  // Force redraw on theme change
+  useEffect(() => {
+    if (plotRef.current && plotRef.current.resizeHandler) {
+      setTimeout(() => {
+        plotRef.current.resizeHandler();
+      }, 100);
+    }
+  }, [theme.palette.mode]);
+
   // Prepare map data
   const mapData = useMemo(() => {
     if (!data || data.length === 0) {
       if (!isLoading) {
+        console.error('No data available for the map');
         setMapError('No data available for the map');
       }
       return null;
     }
 
     try {
+      // Log data for debugging
+      console.log(`Processing ${data.length} data points for map`);
+      console.log('Sample data point:', data[0]);
+      
       // Find the metric name from the first data item
       const selectedVar = data[0]?.var || 'Value';
       
       // Group data by country and calculate average values
       const groupedData = data.reduce((acc, item) => {
+        if (!item.iso_a3) {
+          console.warn('Item missing iso_a3:', item);
+          return acc;
+        }
+        
         if (!acc[item.iso_a3]) {
           acc[item.iso_a3] = {
             sum: Number(item.val) || 0,
@@ -81,39 +102,55 @@ const WorldMap = ({
         return acc;
       }, {});
 
+      console.log(`Grouped data for ${Object.keys(groupedData).length} countries`);
+      
       // Calculate averages and prepare data for the map
       const locations = [];
       const values = [];
-      const text = [];
       const customdata = [];
 
       Object.entries(groupedData).forEach(([iso, data]) => {
         locations.push(iso);
         const avgValue = data.sum / data.count;
         values.push(avgValue);
-        text.push(`${data.country}<br>Average ${selectedVar}: ${avgValue.toFixed(2)}`);
-        customdata.push(data.country);
+        customdata.push({
+          country: data.country,
+          metricValue: avgValue.toFixed(2)
+        });
       });
 
       if (locations.length === 0) {
+        console.error('No valid location data for the map');
         setMapError('No valid data points available for the map');
         return null;
       }
+
+      console.log(`Prepared map data with ${locations.length} locations`);
+
+      // Color scale with special color for missing data values
+      // Viridis is a perceptually uniform, sequential colorscale
+      const colorscale = 'Viridis';
 
       return {
         type: 'choropleth',
         locationmode: 'ISO-3',
         locations,
         z: values,
-        text,
         customdata,
-        hovertemplate: '<b>%{customdata}</b><br>' +
-                      `${selectedVar ? selectedVar : 'Value'}: %{z:.2f}<br>` +
-                      '<extra></extra>',
-        colorscale: 'Viridis',
+        hovertemplate: 
+          '<b>%{customdata.country}</b><br>' +
+          `${selectedVar}: %{customdata.metricValue}<br>` +
+          '<extra></extra>',
+        colorscale,
         showscale: true,
         colorbar: {
-          title: selectedVar || 'Value',
+          title: {
+            text: selectedVar || 'Value',
+            font: {
+              size: 12,
+              color: theme.palette.mode === 'dark' ? '#fff' : '#000'
+            }
+          },
           thickness: 20,
           len: 0.6,
           y: 0.5,
@@ -123,10 +160,6 @@ const WorldMap = ({
           tickfont: {
             size: 10,
             color: theme.palette.mode === 'dark' ? '#eee' : '#333'
-          },
-          titlefont: {
-            size: 12,
-            color: theme.palette.mode === 'dark' ? '#fff' : '#000'
           },
         },
         marker: {
@@ -146,6 +179,9 @@ const WorldMap = ({
             },
           }
         },
+        // Handle missing data - countries not in our dataset will remain uncolored/blank
+        // This is the default behavior for choropleth maps
+        zauto: true,  // Auto-scale the color range based on data values
       };
     } catch (error) {
       console.error('Error preparing map data:', error);
@@ -257,6 +293,7 @@ const WorldMap = ({
       
       {mapData && (
         <Plot
+          ref={plotRef}
           data={[mapData]}
           layout={layout}
           config={config}
@@ -264,6 +301,7 @@ const WorldMap = ({
           onInitialized={handleMapInitialized}
           onClick={handleClick}
           onError={handleMapError}
+          useResizeHandler={true}
         />
       )}
     </Box>

@@ -198,22 +198,35 @@ function App() {
         fetchFilteredData(initialFilters);
       }
     }
-  }, [kpiData, selectedFilters.var, selectedFilters.battAlias, fetchFilteredData]);
+  }, [kpiData, fetchFilteredData]);
 
   // Callback to handle filter changes
   const handleFiltersChange = useCallback((newFilters) => {
-    console.log('Filter changed:', newFilters);  // Debug log
+    console.log('Filter changed to:', newFilters);  // Debug log
+    
+    // Don't allow both var and battAlias to be cleared at once
+    // This prevents filter reset issues
+    if (newFilters.var === '' && newFilters.battAlias === '' &&
+        selectedFilters.var && selectedFilters.battAlias) {
+      console.warn('Prevented clearing both metric and battery filters simultaneously');
+      return;
+    }
     
     // Update the selected filters state
     const updatedFilters = {
       ...selectedFilters,
       ...newFilters
     };
+    
+    console.log('Updated filters:', updatedFilters);
     setSelectedFilters(updatedFilters);
 
     // If metric (var) and battery alias are set, trigger server-side filtering
     if (updatedFilters.var && updatedFilters.battAlias) {
+      console.log(`Fetching data for metric "${updatedFilters.var}" and battery "${updatedFilters.battAlias}"`);
       fetchFilteredData(updatedFilters);
+    } else {
+      console.warn('Not fetching filtered data - missing required filters:', updatedFilters);
     }
   }, [selectedFilters, fetchFilteredData]);
 

@@ -182,33 +182,58 @@ class DataService:
         climate: Optional[str] = None
     ) -> List[KPIData]:
         """Get filtered KPI data."""
+        logger = logging.getLogger(__name__)
         try:
             # Validate input parameters
-            if metric not in self.df['var'].unique():
+            logger.info(f"Filtering data with: metric='{metric}', batt_alias='{batt_alias}', continent='{continent}', climate='{climate}'")
+            
+            available_metrics = self.df['var'].unique().tolist()
+            if metric not in available_metrics:
+                logger.warning(f"Invalid metric: '{metric}' not in {available_metrics}")
                 raise ValueError(f"Invalid metric: {metric}")
-            if batt_alias not in self.df['battAlias'].unique():
+                
+            available_batt_aliases = self.df['battAlias'].unique().tolist() 
+            if batt_alias not in available_batt_aliases:
+                logger.warning(f"Invalid battery alias: '{batt_alias}' not in {available_batt_aliases}")
                 raise ValueError(f"Invalid battery alias: {batt_alias}")
-            if continent and continent not in self.df['continent'].unique():
+                
+            if continent and continent not in self.df['continent'].unique() and continent != '':
+                available_continents = self.df['continent'].unique().tolist()
+                logger.warning(f"Invalid continent: '{continent}' not in {available_continents}")
                 raise ValueError(f"Invalid continent: {continent}")
+                
             if climate and climate not in self.df['climate'].unique() and climate != '':
+                available_climates = self.df['climate'].unique().tolist()
+                logger.warning(f"Invalid climate: '{climate}' not in {available_climates}")
                 raise ValueError(f"Invalid climate: {climate}")
 
             # Apply filters
+            logger.info(f"Applying 'var'='{metric}' and 'battAlias'='{batt_alias}' filters")
             filtered_df = self.df[
                 (self.df['var'] == metric) &
                 (self.df['battAlias'] == batt_alias)
             ]
             
+            logger.info(f"After initial filter: {len(filtered_df)} records")
+            
             if continent:
+                logger.info(f"Applying continent filter: {continent}")
                 filtered_df = filtered_df[filtered_df['continent'] == continent]
+                logger.info(f"After continent filter: {len(filtered_df)} records")
                 
             if climate:
+                logger.info(f"Applying climate filter: {climate}")
                 filtered_df = filtered_df[filtered_df['climate'] == climate]
+                logger.info(f"After climate filter: {len(filtered_df)} records")
             
             if filtered_df.empty:
-                raise ValueError("No data found for the specified filters")
+                logger.warning(f"No data found for the specified filters - metric: {metric}, batt_alias: {batt_alias}, continent: {continent}, climate: {climate}")
+                # Don't raise an exception, just return empty list
+                return []
             
-            return filtered_df.to_dict(orient='records')
+            result = filtered_df.to_dict(orient='records')
+            logger.info(f"Returning {len(result)} filtered records")
+            return result
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:

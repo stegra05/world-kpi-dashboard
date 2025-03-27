@@ -160,26 +160,14 @@ export const useKpiData = () => {
 
       setKpiData(dataWithClimate);
       
-      // Initialize filtered data with all data so map has something to display
-      // Find the first valid metric and battery alias 
-      const firstMetric = [...new Set(dataWithClimate.map(item => item.var))][0] || '';
-      const firstBattAlias = [...new Set(dataWithClimate.map(item => item.battAlias))][0] || '';
-      
-      if (firstMetric && firstBattAlias) {
-        // Filter the initial data to show only one metric and battery combo
-        const initialFiltered = dataWithClimate.filter(
-          item => item.var === firstMetric && item.battAlias === firstBattAlias
-        );
-        console.log(`Initializing filtered data with metric "${firstMetric}" and battery "${firstBattAlias}" (${initialFiltered.length} items)`);
-        setFilteredData(initialFiltered.length > 0 ? initialFiltered : dataWithClimate);
-      } else {
-        // Fallback to all data if no consistent metric/battery found
-        setFilteredData(dataWithClimate);
-      }
+      // Don't set filtered data here - wait for explicit filter application
+      // This prevents redundant data loading
       
       setIsLoading(false);
       setIsRefreshing(false);
       setError(null);
+      
+      return dataWithClimate; // Return the processed data
     } catch (err) {
       // Handle network errors with retry
       if (retryCount < MAX_RETRIES && (!err.response || err.code === 'ECONNABORTED')) {
@@ -195,12 +183,13 @@ export const useKpiData = () => {
       });
       setIsLoading(false);
       setIsRefreshing(false);
+      return null;
     }
   };
 
   const fetchFilteredData = async (filters, retryCount = 0) => {
-    if (!filters.var || !filters.battAlias) {
-      // Not enough filter data available yet, don't make API request
+    if (!filters || !filters.var || !filters.battAlias) {
+      console.warn('Skipping filter request - missing required filters', filters);
       return;
     }
 
@@ -217,17 +206,23 @@ export const useKpiData = () => {
       };
       
       const url = `${API_URL}/data/filtered`;
-      console.log('Making request to:', url);
+      console.log('Making request to:', url, 'with params:', params);
       
       const response = await axios.get(url, {
         params,
         timeout: TIMEOUT_MS,
-        validateStatus: status => status === 200
+        validateStatus: status => status === 200,
+        paramsSerializer: params => {
+          return Object.entries(params)
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+            .join('&');
+        }
       });
 
       // Basic data validation
       if (!response.data || !response.data.data) {
-        throw new Error('No data received from server');
+        console.error('Unexpected response structure:', response.data);
+        throw new Error('No data received from server or invalid response structure');
       }
 
       if (!Array.isArray(response.data.data)) {
@@ -235,14 +230,16 @@ export const useKpiData = () => {
         throw new Error('Invalid data format: Expected an array in data property');
       }
 
-      if (response.data.data.length === 0) {
+      // Log first record for debugging
+      if (response.data.data.length > 0) {
+        console.debug('First filtered record:', response.data.data[0]);
+        console.debug('Total filtered records:', response.data.data.length);
+      } else {
+        console.warn('No records returned from filter query', params);
         setFilteredData([]);
         setIsFiltering(false);
         return;
       }
-
-      // Log first record for debugging
-      console.debug('First filtered record:', response.data.data[0]);
       
       // Apply country filter on client-side if needed (since it's not part of the backend filter)
       let filteredResults = response.data.data;
@@ -279,6 +276,39 @@ export const useKpiData = () => {
   useEffect(() => {
     fetchDataWithRetry();
   }, []);
+
+  // Set initial filtered data when kpiData first loads
+  useEffect(() => {
+    if (kpiData.length > 0 && filteredData.length === 0) {
+      // Find the first valid metric and battery alias
+      const firstMetric = [...new Set(kpiData.map(item => item.var))][0] || '';
+      const firstBattAlias = [...new Set(kpiData.map(item => item.battAlias))][0] || '';
+      
+      if (firstMetric && firstBattAlias) {
+        console.log(`Initializing filtered data with first metric "${firstMetric}" and battery "${firstBattAlias}"`);
+        
+        // Apply initial filter
+        const initialFilters = {
+          var: firstMetric,
+          battAlias: firstBattAlias,
+          continent: '',
+          climate: '',
+          country: ''
+        };
+        
+        // Filter client-side for initial view
+        const initialFiltered = kpiData.filter(
+          item => item.var === firstMetric && item.battAlias === firstBattAlias
+        );
+        
+        // Set filtered data directly for immediate rendering
+        setFilteredData(initialFiltered);
+        
+        // Then fetch from server to ensure consistency
+        fetchFilteredData(initialFilters);
+      }
+    }
+  }, [kpiData, filteredData.length, fetchFilteredData]);
 
   return { 
     kpiData, 

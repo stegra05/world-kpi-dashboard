@@ -97,19 +97,41 @@ const FilterPanel = ({
   
   // Apply all temporary filters
   const handleApplyFilters = () => {
+    // Ensure we don't reset both critical filters at once
+    if (!tempFilters.var && !tempFilters.battAlias && 
+        (selectedFilters.var || selectedFilters.battAlias)) {
+      console.warn('Cannot clear both metric and battery alias at once');
+      // Reset to current values - don't apply empty filters
+      setTempFilters({...selectedFilters});
+      setFiltersChanged(false);
+      return;
+    }
+    
+    console.log('Applying filter changes:', tempFilters);
     onFiltersChange(tempFilters);
     setFiltersChanged(false);
   };
 
   // Reset all filters
   const handleResetAllFilters = () => {
+    // Instead of clearing all filters at once, reset to defaults from data
+    const defaultMetric = filterOptions.var[0] || '';
+    const defaultBatt = filterOptions.battAlias[0] || '';
+    
+    if (!defaultMetric || !defaultBatt) {
+      console.error('Cannot find default values for filters');
+      return;
+    }
+    
     const resetFilters = {
-      battAlias: '',
-      var: '',
+      battAlias: defaultBatt,
+      var: defaultMetric,
       continent: '',
       climate: '',
       country: '',
     };
+    
+    console.log('Resetting filters to defaults:', resetFilters);
     setTempFilters(resetFilters);
     onFiltersChange(resetFilters);
     setFiltersChanged(false);
