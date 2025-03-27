@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
-import { Box, Toolbar, Grid, CircularProgress, Paper, useTheme, useMediaQuery, Skeleton } from '@mui/material';
+import { Box, Toolbar, Grid, CircularProgress, Paper, useTheme, useMediaQuery, Skeleton, Typography } from '@mui/material';
 import {
   Public as PublicIcon,
   DirectionsCar as DirectionsCarIcon,
   BatteryChargingFull as BatteryIcon,
   LocationOn as LocationIcon,
+  ErrorOutline as ErrorOutlineIcon,
 } from '@mui/icons-material';
 import WorldMap from './WorldMap';
 import InfoCard from './InfoCard';
@@ -81,7 +82,9 @@ const MainContent = ({
   onCountryClick,
   onResetSelection,
   showTable = true,
-  isLoading = false
+  isLoading = false,
+  isMapLoading = false,
+  mapError = null
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -203,52 +206,64 @@ const MainContent = ({
 
   return (
     <Box sx={styles.container}>
-      <Toolbar /> {/* Spacer to align with AppBar */}
+      <Toolbar /> {/* Spacer for AppBar */}
       
       {/* Info Cards */}
-      <Grid container spacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {renderInfoCards()}
       </Grid>
 
-      {/* Active Filters */}
-      <FilterChips selectedFilters={selectedFilters} />
+      {/* Filter Chips */}
+      <Box sx={{ mb: 2 }}>
+        <FilterChips 
+          selectedFilters={selectedFilters} 
+          onResetSelection={onResetSelection}
+        />
+      </Box>
 
-      {/* Map and Table */}
-      <Grid container spacing={{ xs: 1, sm: 2, md: 3 }}>
-        {/* World Map */}
-        <Grid item xs={12} md={showTable ? 8 : 12}>
-          <Paper elevation={2} sx={styles.mapPaper}>
-            {isLoading ? (
+      {/* Map and Table Section */}
+      <Grid container spacing={2}>
+        {/* Map takes full width */}
+        <Grid item xs={12}>
+          <Paper 
+            elevation={2} 
+            sx={{
+              ...styles.mapPaper,
+              height: '600px', // Increased height for better visibility
+            }}
+          >
+            {isMapLoading && (
               <Box sx={styles.loadingOverlay}>
                 <CircularProgress />
+              </Box>
+            )}
+            {mapError ? (
+              <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ErrorOutlineIcon color="error" />
+                <Typography color="error">{mapError}</Typography>
               </Box>
             ) : (
               <WorldMap
                 data={filteredData}
+                selectedVar={selectedFilters.var}
                 selectedCountryIso={selectedCountryIso}
                 onCountryClick={onCountryClick}
                 onResetSelection={onResetSelection}
-                selectedVar={selectedFilters.var}
               />
             )}
           </Paper>
         </Grid>
 
-        {/* Data Table */}
+        {/* Table below map */}
         {showTable && (
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12}>
             <Paper elevation={2} sx={styles.tablePaper}>
               <DataTable
                 data={filteredData}
-                isLoading={isLoading}
-                selectedCountryIso={selectedCountryIso}
                 selectedVar={selectedFilters.var}
-                variableDescriptions={kpiData.reduce((acc, item) => {
-                  if (item.var && item.descr) {
-                    acc[item.var] = item.descr;
-                  }
-                  return acc;
-                }, {})}
+                selectedCountryIso={selectedCountryIso}
+                onCountryClick={onCountryClick}
+                onResetSelection={onResetSelection}
               />
             </Paper>
           </Grid>
@@ -291,11 +306,14 @@ MainContent.propTypes = {
   onResetSelection: PropTypes.func.isRequired,
   showTable: PropTypes.bool,
   isLoading: PropTypes.bool,
+  isMapLoading: PropTypes.bool,
+  mapError: PropTypes.string,
 };
 
 MainContent.defaultProps = {
   showTable: true,
   isLoading: false,
+  isMapLoading: false,
 };
 
 export default MainContent; 

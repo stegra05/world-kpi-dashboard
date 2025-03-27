@@ -98,77 +98,66 @@ const WorldMap = ({
         hovertemplate: '<b>%{customdata}</b><br>' +
                       `${selectedVar}: %{z:.2f}<br>` +
                       '<extra></extra>',
-        hoverinfo: 'text',
-        colorscale: 'Blues',
+        colorscale: 'Viridis',
+        showscale: true,
         colorbar: {
           title: selectedVar,
-          thickness: 20,
+          thickness: 15,
           len: 0.5,
           y: 0.5,
-          tickformat: '.1f'
+          yanchor: 'middle',
+          outlinewidth: 0,
         },
-        zmin: Math.min(...values),
-        zmax: Math.max(...values),
-        showscale: true,
-        selected: {
-          marker: {
-            opacity: 1,
-            line: {
-              color: theme.palette.primary.main,
-              width: 2
-            }
-          }
+        marker: {
+          line: {
+            color: theme.palette.mode === 'dark' ? '#666' : '#999',
+            width: 0.5,
+          },
         },
-        unselected: {
-          marker: { opacity: 0.5 }
-        }
       };
-    } catch (err) {
-      console.error('Error processing map data:', err);
-      setMapError('Error processing map data. Please check the data format.');
+    } catch (error) {
+      console.error('Error preparing map data:', error);
+      setMapError('Error preparing map data');
       return null;
     }
-  }, [data, selectedVar, theme.palette.primary.main]);
+  }, [data, selectedVar, theme.palette.mode]);
 
-  // Layout configuration
+  // Map layout configuration
   const layout = useMemo(() => ({
     geo: {
       showframe: false,
       showcoastlines: true,
       projection: {
-        type: 'mercator'
+        type: 'mercator',
+        scale: 1.2,
       },
+      fitbounds: 'locations',
+      center: { lat: 20, lon: 0 },
+      zoom: 1.2,
+    },
+    margin: { t: 0, b: 0, l: 0, r: 0 },
+    autosize: true,
+    dragmode: 'zoom',
+    showlegend: false,
+    modebar: {
+      orientation: 'v',
+      position: 'top-right',
       bgcolor: 'transparent',
-      showcountries: true,
-      countrycolor: theme.palette.divider,
-      coastlinecolor: theme.palette.divider,
-      showland: true,
-      landcolor: theme.palette.background.paper,
-      showlakes: true,
-      lakecolor: theme.palette.background.default
+      color: theme.palette.mode === 'dark' ? '#fff' : '#000',
     },
-    margin: {
-      r: 0,
-      t: 30,
-      b: 0,
-      l: 0
-    },
-    paper_bgcolor: 'transparent',
-    plot_bgcolor: 'transparent',
-    clickmode: 'event+select',
-    height: mapHeight,
-    autosize: true
-  }), [theme.palette, mapHeight]);
+    modebarRemove: ['autoScale2d'],
+    modebarAdd: ['zoom', 'pan', 'resetScale2d'],
+  }), [theme.palette.mode]);
 
-  // Config for Plotly
-  const config = useMemo(() => ({
+  // Map configuration
+  const config = {
     responsive: true,
-    displayModeBar: false,
-    scrollZoom: false,
-    modeBarButtonsToRemove: ['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
-    modeBarButtonsToAdd: [],
-    mapboxAccessToken: null // Disable mapbox
-  }), []);
+    displayModeBar: true,
+    displaylogo: false,
+    scrollZoom: true,
+    modeBarButtonsToAdd: ['zoom', 'pan', 'resetScale2d'],
+    modeBarButtonsToRemove: ['autoScale2d'],
+  };
 
   // Reset error state when data changes
   useEffect(() => {
@@ -206,31 +195,15 @@ const WorldMap = ({
   }
 
   return (
-    <Box sx={{ height: '100%', position: 'relative' }}>
-      {isMapLoading && (
-        <Box sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          zIndex: 1,
-        }}>
-          <CircularProgress />
-        </Box>
-      )}
+    <Box sx={{ width: '100%', height: '100%' }}>
       <Plot
         data={[mapData]}
         layout={layout}
         config={config}
-        style={{ width: '100%', height: '100%' }}
         onClick={handleClick}
         onInitialized={handleMapInitialized}
         onError={handleMapError}
+        style={{ width: '100%', height: '100%' }}
         useResizeHandler={true}
       />
     </Box>

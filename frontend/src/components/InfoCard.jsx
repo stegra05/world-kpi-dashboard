@@ -34,6 +34,8 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
         flexGrow: 1, 
         p: isSmallScreen ? 1.5 : 2,
         '&:last-child': { pb: isSmallScreen ? 1.5 : 2 },
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         <Box
           sx={{
@@ -95,6 +97,9 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
               whiteSpace: 'normal',
               wordBreak: 'break-word',
               lineHeight: 1.4,
+              flexGrow: 1,
+              minHeight: 0,
+              display: 'block',
             }}
           >
             {subtitle}
