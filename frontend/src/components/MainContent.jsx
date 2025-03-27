@@ -78,6 +78,7 @@ const MainContent = ({
   selectedFilters, 
   selectedCountryIso = null, 
   onCountryClick,
+  onResetSelection,
   showTable = true,
   isLoading = false
 }) => {
@@ -225,6 +226,7 @@ const MainContent = ({
                 data={filteredData}
                 selectedCountryIso={selectedCountryIso}
                 onCountryClick={onCountryClick}
+                onResetSelection={onResetSelection}
                 selectedVar={selectedFilters.var}
               />
             )}
@@ -285,6 +287,7 @@ MainContent.propTypes = {
   }).isRequired,
   selectedCountryIso: PropTypes.string,
   onCountryClick: PropTypes.func.isRequired,
+  onResetSelection: PropTypes.func.isRequired,
   showTable: PropTypes.bool,
   isLoading: PropTypes.bool,
 };

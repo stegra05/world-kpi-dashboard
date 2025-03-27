@@ -8,7 +8,8 @@ const WorldMap = ({
   data = [], 
   selectedVar = '', 
   selectedCountryIso = null, 
-  onCountryClick = () => {} 
+  onCountryClick = () => {},
+  onResetSelection = () => {}
 }) => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -21,27 +22,36 @@ const WorldMap = ({
 
   // Memoize the click handler
   const handleClick = useCallback((event) => {
-    const points = event.points[0];
-    const countryIso = points.location;
-    onCountryClick(countryIso);
-  }, [onCountryClick]);
+    // Check if the click was on a country (point) or on the background
+    if (event.points && event.points.length > 0) {
+      const points = event.points[0];
+      const countryIso = points.location;
+      onCountryClick(countryIso);
+    } else {
+      // Click was on the background, reset selection
+      onResetSelection();
+    }
+  }, [onCountryClick, onResetSelection]);
 
   // Handle map initialization
   const handleMapInitialized = useCallback(() => {
     setIsMapLoading(false);
-    window.dispatchEvent(new Event('resize'));
+    setMapError(null);
   }, []);
 
   // Handle map errors
   const handleMapError = useCallback((error) => {
     console.error('Map error:', error);
-    setMapError('Error initializing map');
+    setMapError('Error initializing map. Please try refreshing the page.');
     setIsMapLoading(false);
   }, []);
 
   // Prepare map data
   const mapData = useMemo(() => {
-    if (!data || data.length === 0) return null;
+    if (!data || data.length === 0) {
+      setMapError('No data available for the map');
+      return null;
+    }
 
     try {
       // Group data by country and calculate average values
@@ -73,8 +83,14 @@ const WorldMap = ({
         customdata.push(data.country);
       });
 
+      if (locations.length === 0) {
+        setMapError('No valid data points available for the map');
+        return null;
+      }
+
       return {
         type: 'choropleth',
+        locationmode: 'ISO-3',
         locations,
         z: values,
         text,
@@ -109,7 +125,7 @@ const WorldMap = ({
       };
     } catch (err) {
       console.error('Error processing map data:', err);
-      setMapError('Error processing map data');
+      setMapError('Error processing map data. Please check the data format.');
       return null;
     }
   }, [data, selectedVar, theme.palette.primary.main]);
@@ -119,9 +135,8 @@ const WorldMap = ({
     geo: {
       showframe: false,
       showcoastlines: true,
-      projection: { 
-        type: 'equirectangular',
-        scale: 1.1
+      projection: {
+        type: 'mercator'
       },
       bgcolor: 'transparent',
       showcountries: true,
@@ -130,92 +145,94 @@ const WorldMap = ({
       showland: true,
       landcolor: theme.palette.background.paper,
       showlakes: true,
-      lakecolor: theme.palette.background.default,
-      lataxis: {
-        range: [-60, 90], // Exclude Antarctica (south of -60°)
-        showgrid: false,
-        zeroline: false
-      },
-      lonaxis: {
-        showgrid: false,
-        zeroline: false
-      }
+      lakecolor: theme.palette.background.default
+    },
+    margin: {
+      r: 0,
+      t: 30,
+      b: 0,
+      l: 0
     },
     paper_bgcolor: 'transparent',
     plot_bgcolor: 'transparent',
-    margin: { t: 0, l: 0, r: 0, b: 0 },
-    height: isSmallScreen ? 300 : 500,
-    autosize: true,
-    dragmode: 'zoom',
-    showlegend: false,
-  }), [isSmallScreen, theme.palette]);
+    clickmode: 'event+select',
+    height: mapHeight,
+    autosize: true
+  }), [theme.palette, mapHeight]);
 
-  // Config for the plot
+  // Config for Plotly
   const config = useMemo(() => ({
-    displayModeBar: true,
     responsive: true,
-    scrollZoom: true,
-    modeBarButtonsToAdd: ['zoom', 'pan', 'resetScale2d'],
-    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    displayModeBar: false,
+    scrollZoom: false,
+    modeBarButtonsToRemove: ['zoom', 'pan', 'select', 'lasso', 'zoomIn', 'zoomOut', 'autoScale', 'resetScale'],
+    modeBarButtonsToAdd: [],
+    mapboxAccessToken: null // Disable mapbox
   }), []);
 
+  // Reset error state when data changes
   useEffect(() => {
-    setIsMapLoading(false);
-  }, [data]);
+    setMapError(null);
+    setIsMapLoading(true);
+  }, [data, selectedVar]);
+
+  // Handle map updates
+  useEffect(() => {
+    if (mapData) {
+      setIsMapLoading(false);
+    }
+  }, [mapData]);
 
   if (mapError) {
     return (
-      <Box sx={{ p: 2, textAlign: 'center' }}>
+      <Box sx={{ 
+        p: 2, 
+        textAlign: 'center',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
         <ErrorOutlineIcon sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Typography variant="body1" color="error" gutterBottom>
           {mapError}
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (!mapData) {
-    return (
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant="body1" color="text.secondary">
-          {selectedVar ? 'No data available for the selected filters' : 'Please select a variable to display'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Please try selecting different filters or refreshing the page.
         </Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ 
-      width: '100%',
-      height: isSmallScreen ? 300 : 500,
-      bgcolor: 'background.paper',
-      borderRadius: 1,
-      overflow: 'hidden',
-      boxShadow: 1,
-      p: 2
-    }}>
-      {mapError ? (
-        <Alert severity="error" sx={{ m: 2 }}>
-          {mapError}
-        </Alert>
-      ) : isMapLoading ? (
-        <Box sx={{ 
-          height: '100%', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center' 
+    <Box sx={{ height: '100%', position: 'relative' }}>
+      {isMapLoading && (
+        <Box sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          zIndex: 1,
         }}>
           <CircularProgress />
         </Box>
-      ) : (
-        <Plot
-          data={[mapData]}
-          layout={layout}
-          config={config}
-          onClick={handleClick}
-          style={{ width: '100%', height: '100%' }}
-        />
       )}
+      <Plot
+        data={[mapData]}
+        layout={layout}
+        config={config}
+        style={{ width: '100%', height: '100%' }}
+        onClick={handleClick}
+        onInitialized={handleMapInitialized}
+        onError={handleMapError}
+        useResizeHandler={true}
+      />
     </Box>
   );
 };
@@ -224,12 +241,21 @@ WorldMap.propTypes = {
   data: PropTypes.arrayOf(PropTypes.shape({
     iso_a3: PropTypes.string,
     country: PropTypes.string,
-    val: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    cnt_vhcl: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    val: PropTypes.number,
+    var: PropTypes.string,
   })),
   selectedVar: PropTypes.string,
   selectedCountryIso: PropTypes.string,
-  onCountryClick: PropTypes.func.isRequired,
+  onCountryClick: PropTypes.func,
+  onResetSelection: PropTypes.func,
+};
+
+WorldMap.defaultProps = {
+  data: [],
+  selectedVar: '',
+  selectedCountryIso: null,
+  onCountryClick: () => {},
+  onResetSelection: () => {},
 };
 
 export default WorldMap; 

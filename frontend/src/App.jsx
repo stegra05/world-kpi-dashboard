@@ -11,7 +11,9 @@ import {
   IconButton,
   Paper,
   Stack,
-  Backdrop
+  Backdrop,
+  Snackbar,
+  AlertTitle
 } from '@mui/material';
 import {
   Brightness4 as Brightness4Icon,
@@ -20,6 +22,7 @@ import {
   TableChartOutlined as TableChartOutlinedIcon,
   Refresh as RefreshIcon,
   ErrorOutline as ErrorOutlineIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useTheme } from './context/ThemeContext';
 import Sidebar from './components/Sidebar';
@@ -67,6 +70,15 @@ const styles = {
   backdrop: {
     zIndex: (theme) => theme.zIndex.drawer + 2,
   },
+  errorAlert: {
+    position: 'fixed',
+    top: 16,
+    right: 16,
+    zIndex: (theme) => theme.zIndex.drawer + 3,
+    maxWidth: 'calc(100% - 32px)',
+    width: 'auto',
+    minWidth: 300,
+  },
 };
 
 const LoadingState = ({ onRetry }) => (
@@ -96,26 +108,33 @@ const ErrorState = ({ error, onRetry }) => (
       <Stack spacing={2} alignItems="center">
         <ErrorOutlineIcon sx={{ fontSize: 48, color: 'error.main' }} />
         <Typography variant="h6" color="error">
-          Error Loading Data
+          {error.message}
         </Typography>
         <Typography variant="body1" color="text.secondary" align="center">
-          {error}
+          {error.detail}
         </Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<RefreshIcon />}
-          onClick={onRetry}
-          sx={{ mt: 2 }}
-        >
-          Retry
-        </Button>
+        {error.retryable && (
+          <Button 
+            variant="contained" 
+            startIcon={<RefreshIcon />}
+            onClick={onRetry}
+            sx={{ mt: 2 }}
+          >
+            Retry
+          </Button>
+        )}
       </Stack>
     </Paper>
   </Box>
 );
 
 ErrorState.propTypes = {
-  error: PropTypes.string.isRequired,
+  error: PropTypes.shape({
+    message: PropTypes.string.isRequired,
+    detail: PropTypes.string.isRequired,
+    severity: PropTypes.oneOf(['error', 'warning', 'info']).isRequired,
+    retryable: PropTypes.bool.isRequired,
+  }).isRequired,
   onRetry: PropTypes.func.isRequired,
 };
 
@@ -130,6 +149,7 @@ function App() {
     setIsFiltering 
   } = useKpiData();
   const { toggleDarkMode, isDarkMode } = useTheme();
+  const [showError, setShowError] = useState(false);
   
   // Centralized filter state
   const [selectedFilters, setSelectedFilters] = useState({
@@ -142,6 +162,13 @@ function App() {
   const [filteredData, setFilteredData] = useState([]);
   const [selectedCountryIso, setSelectedCountryIso] = useState(null);
   const [showTable, setShowTable] = useState(true);
+
+  // Handle error state changes
+  useEffect(() => {
+    if (error) {
+      setShowError(true);
+    }
+  }, [error]);
 
   // Callback to handle filter changes
   const handleFiltersChange = useCallback((newFilters) => {
@@ -175,6 +202,15 @@ function App() {
       console.warn(`Country with ISO code ${isoCode} not found in data`);
     }
   }, [kpiData]);
+
+  // Handler for resetting country selection
+  const handleResetSelection = useCallback(() => {
+    setSelectedCountryIso(null);
+    setSelectedFilters(prev => ({
+      ...prev,
+      country: ''
+    }));
+  }, []);
 
   // Effect to filter data based on selected filters
   useEffect(() => {
@@ -243,6 +279,7 @@ function App() {
           selectedFilters={selectedFilters}
           selectedCountryIso={selectedCountryIso}
           onCountryClick={handleCountryClick}
+          onResetSelection={handleResetSelection}
           showTable={showTable}
           isLoading={isLoading || isFiltering}
         />
@@ -256,6 +293,33 @@ function App() {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={showError}
+        autoHideDuration={6000}
+        onClose={() => setShowError(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setShowError(false)}
+          severity={error?.severity || 'error'}
+          sx={styles.errorAlert}
+          action={
+            <IconButton
+              aria-label="close"
+              color="inherit"
+              size="small"
+              onClick={() => setShowError(false)}
+            >
+              <CloseIcon fontSize="inherit" />
+            </IconButton>
+          }
+        >
+          <AlertTitle>{error?.message}</AlertTitle>
+          {error?.detail}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

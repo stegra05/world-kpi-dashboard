@@ -16,23 +16,58 @@ const getErrorMessage = (error) => {
     
     switch (status) {
       case 400:
-        return `Invalid request: ${detail}`;
+        return {
+          message: 'Invalid request',
+          detail: detail,
+          severity: 'warning',
+          retryable: true
+        };
       case 404:
-        return `Resource not found: ${detail}`;
+        return {
+          message: 'Resource not found',
+          detail: detail,
+          severity: 'info',
+          retryable: false
+        };
       case 500:
-        return `Server error: ${detail}`;
+        return {
+          message: 'Server error',
+          detail: detail,
+          severity: 'error',
+          retryable: true
+        };
       default:
-        return `Server error (${status}): ${detail}`;
+        return {
+          message: `Server error (${status})`,
+          detail: detail,
+          severity: 'error',
+          retryable: true
+        };
     }
   } else if (error.request) {
     // Request was made but no response received
     if (error.code === 'ECONNABORTED') {
-      return 'Request timed out. Please check your connection and try again.';
+      return {
+        message: 'Request timed out',
+        detail: 'Please check your connection and try again.',
+        severity: 'warning',
+        retryable: true
+      };
     }
-    return 'No response from server. Please check your connection and try again.';
+    return {
+      message: 'No response from server',
+      detail: 'Please check your connection and try again.',
+      severity: 'warning',
+      retryable: true
+    };
   } else {
     // Error in request setup
-    return `Request error: ${error.message}`;
+    return {
+      message: 'Request error',
+      detail: error.message,
+      severity: 'error',
+      retryable: false
+    };
   }
 };
 
@@ -132,9 +167,12 @@ export const useKpiData = () => {
         return fetchDataWithRetry(retryCount + 1, isRefresh);
       }
       
-      const errorMessage = getErrorMessage(err);
+      const errorInfo = getErrorMessage(err);
       const retryInfo = retryCount > 0 ? ` (after ${retryCount} retries)` : '';
-      setError(`${errorMessage}${retryInfo}`);
+      setError({
+        ...errorInfo,
+        detail: `${errorInfo.detail}${retryInfo}`
+      });
       setIsLoading(false);
       setIsRefreshing(false);
     }
