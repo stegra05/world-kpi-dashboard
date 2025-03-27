@@ -11,6 +11,7 @@ import WorldMap from './WorldMap';
 import InfoCard from './InfoCard';
 import DataTable from './DataTable';
 import FilterChips from './FilterChips';
+import { formatNumber } from '../utils/formatUtils';
 
 const styles = {
   container: {
@@ -159,7 +160,7 @@ const MainContent = ({
               value={stats.selectedCountry}
               subtitle={
                 stats.selectedCountryStats
-                  ? `${stats.selectedCountryStats.totalVehicles.toLocaleString()} vehicles, ${stats.selectedCountryStats.uniqueBatteries} battery types`
+                  ? `${formatNumber(stats.selectedCountryStats.totalVehicles)} vehicles, ${formatNumber(stats.selectedCountryStats.uniqueBatteries)} battery types`
                   : "Click a country on the map"
               }
               icon={<LocationIcon />}
@@ -170,7 +171,7 @@ const MainContent = ({
           <Paper elevation={2} sx={styles.paper}>
             <InfoCard
               title="Countries"
-              value={stats.uniqueCountries}
+              value={formatNumber(stats.uniqueCountries)}
               subtitle="Number of countries in filtered data"
               icon={<PublicIcon />}
             />
@@ -180,7 +181,7 @@ const MainContent = ({
           <Paper elevation={2} sx={styles.paper}>
             <InfoCard
               title="Total Vehicles"
-              value={stats.totalVehicles.toLocaleString()}
+              value={formatNumber(stats.totalVehicles)}
               subtitle="Sum of vehicles in filtered data"
               icon={<DirectionsCarIcon />}
             />
@@ -190,7 +191,7 @@ const MainContent = ({
           <Paper elevation={2} sx={styles.paper}>
             <InfoCard
               title="Battery Types"
-              value={stats.uniqueBatteries}
+              value={formatNumber(stats.uniqueBatteries)}
               subtitle="Unique battery types in filtered data"
               icon={<BatteryIcon />}
             />

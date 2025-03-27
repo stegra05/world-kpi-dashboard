@@ -8,14 +8,7 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-
-// Helper function to format values
-const formatValue = (value) => {
-  if (typeof value === 'number') {
-    return value.toLocaleString('de-DE');
-  }
-  return value;
-};
+import { formatNumber } from '../utils/formatUtils';
 
 const InfoCard = ({ title, value, subtitle, icon }) => {
   const theme = useTheme();
@@ -90,7 +83,7 @@ const InfoCard = ({ title, value, subtitle, icon }) => {
             textOverflow: 'ellipsis',
           }}
         >
-          {formatValue(value)}
+          {formatNumber(value)}
         </Typography>
         {subtitle && (
           <Typography
