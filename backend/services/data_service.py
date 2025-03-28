@@ -5,13 +5,23 @@ from fastapi import HTTPException
 import logging
 
 class DataService:
+    # Class-level cache for the DataFrame
+    _df_cache = {}
+    _logger = logging.getLogger(__name__)
+
     def __init__(self, csv_path: str):
         self.csv_path = csv_path
         self._load_data()
 
     def _load_data(self) -> None:
-        """Load and validate data from CSV file."""
+        """Load and validate data from CSV file with caching."""
         try:
+            # Check if data is already in cache
+            if self.csv_path in self._df_cache:
+                self._logger.info(f"Using cached DataFrame for {self.csv_path}")
+                self.df = self._df_cache[self.csv_path]
+                return
+
             # Check if file exists
             if not pd.io.common.file_exists(self.csv_path):
                 raise FileNotFoundError(f"Data file not found: {self.csv_path}")
@@ -19,6 +29,7 @@ class DataService:
             # Read CSV with specific error handling
             try:
                 self.df = pd.read_csv(self.csv_path, delimiter=';')
+                self._logger.info(f"First-time data load from {self.csv_path}: {len(self.df)} rows")
             except pd.errors.EmptyDataError:
                 raise ValueError("The CSV file is empty")
             except pd.errors.ParserError as e:
@@ -57,9 +68,11 @@ class DataService:
             if self.df['val'].isna().all():
                 raise ValueError("No valid numeric values found in the 'val' column")
                 
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"Data loaded successfully: {len(self.df)} rows, columns: {list(self.df.columns)}")
+            self._logger.info(f"Data loaded successfully: {len(self.df)} rows, columns: {list(self.df.columns)}")
+            
+            # Cache the processed DataFrame
+            self._df_cache[self.csv_path] = self.df
+            self._logger.info(f"Cached DataFrame for {self.csv_path}")
             
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e))
@@ -67,19 +80,18 @@ class DataService:
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             import traceback
-            logging.error(f"Unexpected error loading data: {str(e)}")
-            logging.error(traceback.format_exc())
+            self._logger.error(f"Unexpected error loading data: {str(e)}")
+            self._logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=f"Unexpected error loading data: {str(e)}")
 
     def get_all_data(self) -> List[KPIData]:
         """Get all KPI data."""
         try:
-            logger = logging.getLogger(__name__)
-            logger.setLevel(logging.DEBUG)
-            logger.debug("Converting dataframe to dict")
-            logger.debug(f"Dataframe shape: {self.df.shape}")
-            logger.debug(f"Dataframe columns: {self.df.columns.tolist()}")
-            logger.debug(f"Sample data: {self.df.head(1).to_dict(orient='records')}")
+            self._logger.setLevel(logging.DEBUG)
+            self._logger.debug("Converting dataframe to dict")
+            self._logger.debug(f"Dataframe shape: {self.df.shape}")
+            self._logger.debug(f"Dataframe columns: {self.df.columns.tolist()}")
+            self._logger.debug(f"Sample data: {self.df.head(1).to_dict(orient='records')}")
             
             # Convert to records and validate each record
             records = self.df.to_dict(orient='records')
@@ -89,8 +101,8 @@ class DataService:
                 try:
                     # Log the raw record for debugging
                     if idx == 0:  # Log only first record to avoid spam
-                        logger.debug(f"Raw record: {record}")
-                        logger.debug(f"Record types: {dict((k, type(v)) for k, v in record.items())}")
+                        self._logger.debug(f"Raw record: {record}")
+                        self._logger.debug(f"Record types: {dict((k, type(v)) for k, v in record.items())}")
                     
                     # Create KPIData instance to validate the record
                     kpi_data = KPIData(
@@ -107,25 +119,24 @@ class DataService:
                     
                     # Log the validated record for debugging
                     if idx == 0:  # Log only first record to avoid spam
-                        logger.debug(f"Validated record: {validated_record}")
-                        logger.debug(f"Validated record types: {dict((k, type(v)) for k, v in validated_record.items())}")
+                        self._logger.debug(f"Validated record: {validated_record}")
+                        self._logger.debug(f"Validated record types: {dict((k, type(v)) for k, v in validated_record.items())}")
                     
                     validated_records.append(validated_record)
                 except Exception as e:
-                    logger.warning(f"Skipping invalid record at index {idx}: {record}. Error: {str(e)}")
+                    self._logger.warning(f"Skipping invalid record at index {idx}: {record}. Error: {str(e)}")
                     continue
             
             if not validated_records:
                 raise ValueError("No valid records found after validation")
             
-            logger.debug(f"Conversion complete, returning {len(validated_records)} records")
-            logger.debug(f"First validated record: {validated_records[0]}")
+            self._logger.debug(f"Conversion complete, returning {len(validated_records)} records")
+            self._logger.debug(f"First validated record: {validated_records[0]}")
             return validated_records
         except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error converting data to records: {str(e)}")
+            self._logger.error(f"Error converting data to records: {str(e)}")
             import traceback
-            logger.error(traceback.format_exc())
+            self._logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=f"Error converting data to records: {str(e)}")
 
     def get_unique_metrics(self) -> List[str]:
@@ -182,57 +193,55 @@ class DataService:
         climate: Optional[str] = None
     ) -> List[KPIData]:
         """Get filtered KPI data."""
-        logger = logging.getLogger(__name__)
+        self._logger.info(f"Filtering data with: metric='{metric}', batt_alias='{batt_alias}', continent='{continent}', climate='{climate}'")
+        
         try:
-            # Validate input parameters
-            logger.info(f"Filtering data with: metric='{metric}', batt_alias='{batt_alias}', continent='{continent}', climate='{climate}'")
-            
             available_metrics = self.df['var'].unique().tolist()
             if metric not in available_metrics:
-                logger.warning(f"Invalid metric: '{metric}' not in {available_metrics}")
+                self._logger.warning(f"Invalid metric: '{metric}' not in {available_metrics}")
                 raise ValueError(f"Invalid metric: {metric}")
                 
             available_batt_aliases = self.df['battAlias'].unique().tolist() 
             if batt_alias not in available_batt_aliases:
-                logger.warning(f"Invalid battery alias: '{batt_alias}' not in {available_batt_aliases}")
+                self._logger.warning(f"Invalid battery alias: '{batt_alias}' not in {available_batt_aliases}")
                 raise ValueError(f"Invalid battery alias: {batt_alias}")
                 
             if continent and continent not in self.df['continent'].unique() and continent != '':
                 available_continents = self.df['continent'].unique().tolist()
-                logger.warning(f"Invalid continent: '{continent}' not in {available_continents}")
+                self._logger.warning(f"Invalid continent: '{continent}' not in {available_continents}")
                 raise ValueError(f"Invalid continent: {continent}")
                 
             if climate and climate not in self.df['climate'].unique() and climate != '':
                 available_climates = self.df['climate'].unique().tolist()
-                logger.warning(f"Invalid climate: '{climate}' not in {available_climates}")
+                self._logger.warning(f"Invalid climate: '{climate}' not in {available_climates}")
                 raise ValueError(f"Invalid climate: {climate}")
 
             # Apply filters
-            logger.info(f"Applying 'var'='{metric}' and 'battAlias'='{batt_alias}' filters")
+            self._logger.info(f"Applying 'var'='{metric}' and 'battAlias'='{batt_alias}' filters")
             filtered_df = self.df[
                 (self.df['var'] == metric) &
                 (self.df['battAlias'] == batt_alias)
             ]
             
-            logger.info(f"After initial filter: {len(filtered_df)} records")
+            self._logger.info(f"After initial filter: {len(filtered_df)} records")
             
             if continent:
-                logger.info(f"Applying continent filter: {continent}")
+                self._logger.info(f"Applying continent filter: {continent}")
                 filtered_df = filtered_df[filtered_df['continent'] == continent]
-                logger.info(f"After continent filter: {len(filtered_df)} records")
+                self._logger.info(f"After continent filter: {len(filtered_df)} records")
                 
             if climate:
-                logger.info(f"Applying climate filter: {climate}")
+                self._logger.info(f"Applying climate filter: {climate}")
                 filtered_df = filtered_df[filtered_df['climate'] == climate]
-                logger.info(f"After climate filter: {len(filtered_df)} records")
+                self._logger.info(f"After climate filter: {len(filtered_df)} records")
             
             if filtered_df.empty:
-                logger.warning(f"No data found for the specified filters - metric: {metric}, batt_alias: {batt_alias}, continent: {continent}, climate: {climate}")
+                self._logger.warning(f"No data found for the specified filters - metric: {metric}, batt_alias: {batt_alias}, continent: {continent}, climate: {climate}")
                 # Don't raise an exception, just return empty list
                 return []
             
             result = filtered_df.to_dict(orient='records')
-            logger.info(f"Returning {len(result)} filtered records")
+            self._logger.info(f"Returning {len(result)} filtered records")
             return result
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))

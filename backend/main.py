@@ -8,6 +8,9 @@ import pandas as pd
 from pathlib import Path
 import logging
 import os
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+from fastapi_cache.decorator import cache
 
 from models.data_model import (
     KPIData, 
@@ -51,6 +54,11 @@ try:
 except Exception as e:
     logger.error(f"Failed to initialize DataService: {str(e)}")
     raise
+
+# Initialize cache
+@app.on_event("startup")
+async def startup():
+    FastAPICache.init(InMemoryBackend())
 
 # Mount static assets directory if it exists
 if os.path.isdir(STATIC_ASSETS_DIR):
@@ -106,6 +114,7 @@ async def get_data() -> List[KPIData]:
         )
 
 @app.get("/api/v1/metrics", response_model=MetricsResponse)
+@cache(expire=3600)
 async def get_metrics() -> MetricsResponse:
     """
     Get list of unique metrics available in the dataset.
@@ -134,6 +143,7 @@ async def get_metrics() -> MetricsResponse:
         )
 
 @app.get("/api/v1/batt-aliases", response_model=BattAliasesResponse)
+@cache(expire=3600)
 async def get_batt_aliases() -> BattAliasesResponse:
     """
     Get list of unique battery aliases available in the dataset.
@@ -162,6 +172,7 @@ async def get_batt_aliases() -> BattAliasesResponse:
         )
 
 @app.get("/api/v1/continents", response_model=ContinentsResponse)
+@cache(expire=3600)
 async def get_continents() -> ContinentsResponse:
     """
     Get list of unique continents available in the dataset.
@@ -190,6 +201,7 @@ async def get_continents() -> ContinentsResponse:
         )
 
 @app.get("/api/v1/model-series", response_model=ModelSeriesResponse)
+@cache(expire=3600)
 async def get_model_series() -> ModelSeriesResponse:
     """
     Get list of unique model series available in the dataset.
@@ -218,6 +230,7 @@ async def get_model_series() -> ModelSeriesResponse:
         )
 
 @app.get("/api/v1/climates", response_model=List[str])
+@cache(expire=3600)
 async def get_climates() -> List[str]:
     """
     Get list of unique climates available in the dataset.
