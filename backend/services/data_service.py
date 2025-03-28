@@ -54,10 +54,17 @@ class DataService:
                 
             # Validate and clean data types with specific error handling
             try:
-                # Handle empty iso_a3 values by generating a placeholder code
+                # Handle empty iso_a3 values with placeholder and logging
                 self.df['iso_a3'] = self.df['iso_a3'].fillna('').astype(str)
-                # Generate placeholder codes for empty iso_a3 values
-                self.df.loc[self.df['iso_a3'] == '', 'iso_a3'] = self.df.loc[self.df['iso_a3'] == '', 'country'].str[:3].str.upper()
+                missing_iso_a3 = self.df[self.df['iso_a3'] == '']
+                if not missing_iso_a3.empty:
+                    self._logger.warning(
+                        f"Found {len(missing_iso_a3)} records with missing iso_a3 codes. "
+                        f"Countries affected: {missing_iso_a3['country'].unique().tolist()}"
+                    )
+                    # Assign placeholder 'XXX' to missing iso_a3 values
+                    self.df.loc[self.df['iso_a3'] == '', 'iso_a3'] = 'XXX'
+                
                 # Ensure all iso_a3 values are exactly 3 characters
                 self.df['iso_a3'] = self.df['iso_a3'].str[:3].str.upper()
                 
@@ -227,7 +234,8 @@ class DataService:
             self._logger.info(f"Applying 'var'='{metric}' and 'battAlias'='{batt_alias}' filters")
             filtered_df = self.df[
                 (self.df['var'] == metric) &
-                (self.df['battAlias'] == batt_alias)
+                (self.df['battAlias'] == batt_alias) &
+                (self.df['iso_a3'] != 'XXX')  # Filter out records with missing iso_a3 codes
             ]
             
             self._logger.info(f"After initial filter: {len(filtered_df)} records")
